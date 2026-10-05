@@ -60,11 +60,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenNewChat 
                 width: 8,
                 height: 8,
                 borderRadius: '50%',
-                backgroundColor: isPolling
-                  ? 'var(--accent-green)'
-                  : instanceState?.stateInstance === 'authorized'
-                  ? 'var(--accent-green)'
-                  : 'var(--accent-amber)',
+                backgroundColor:
+                  instanceState?.stateInstance === 'authorized'
+                    ? 'var(--accent-green)'
+                    : 'var(--accent-amber)',
               }}
             />
             <span style={styles.instanceTitle}>
@@ -90,6 +89,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenNewChat 
           </button>
         </div>
       </div>
+
+      {instanceState?.stateInstance === 'notAuthorized' && (
+        <div style={styles.notAuthorizedNotice}>
+          <AlertTriangle size={14} color="var(--accent-amber)" style={{ flexShrink: 0 }} />
+          <span style={styles.notAuthText}>
+            Инстанс не авторизован.{' '}
+            <a
+              href="https://console.green-api.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={styles.notAuthLink}
+            >
+              Отсканируйте QR ↗
+            </a>
+          </span>
+        </div>
+      )}
 
       {/* Search Bar */}
       <div style={styles.searchContainer}>
@@ -260,6 +276,24 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.03)',
+  },
+  notAuthorizedNotice: {
+    backgroundColor: 'rgba(255, 149, 0, 0.1)',
+    borderBottom: '1px solid rgba(255, 149, 0, 0.2)',
+    padding: '8px 14px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+  },
+  notAuthText: {
+    fontSize: '12px',
+    color: 'var(--accent-amber)',
+    lineHeight: '1.3',
+  },
+  notAuthLink: {
+    color: 'var(--accent-amber)',
+    fontWeight: 600,
+    textDecoration: 'underline',
   },
   searchContainer: {
     padding: '10px 14px',

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { GreenApiCredentials, InstanceState } from '@/types/greenApi';
 import { GreenApiClient } from '@/services/greenApiClient';
 
@@ -25,6 +25,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  const lastCheckTimeRef = useRef<number>(0);
+  const isCheckingRef = useRef<boolean>(false);
+
   // Load from localStorage on mount
   useEffect(() => {
     try {
@@ -36,7 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     } catch {
-      // LocalStorage access error or corrupted data
+      // LocalStorage access error
     } finally {
       setIsLoading(false);
     }
@@ -52,20 +55,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkStatus = useCallback(async () => {
     if (!client) return;
+
+    // Rate-limiting guard: prevent calling getStateInstance more than once every 10 seconds
+    const now = Date.now();
+    if (isCheckingRef.current || now - lastCheckTimeRef.current < 10000) {
+      return;
+    }
+
+    isCheckingRef.current = true;
+    lastCheckTimeRef.current = now;
+
     try {
-      setError(null);
       const state = await client.getStateInstance();
       setInstanceState(state);
+      setError(null);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Ошибка проверки статуса инстанса';
-      setError(message);
+      // If it's a 429 rate limit, do not display scary red error, just wait
+      if (!message.includes('429')) {
+        setError(message);
+      }
+    } finally {
+      isCheckingRef.current = false;
     }
   }, [client]);
 
-  // Check status whenever client changes
+  // Check status once when client changes, guarded against rapid repeat calls
   useEffect(() => {
     if (client) {
-      checkStatus();
+      const timer = setTimeout(() => {
+        checkStatus();
+      }, 500);
+      return () => clearTimeout(timer);
     } else {
       setInstanceState(null);
     }
@@ -76,14 +97,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     try {
       const testClient = new GreenApiClient(creds);
-      const state = await testClient.getStateInstance();
+      lastCheckTimeRef.current = Date.now();
+      
+      try {
+        const state = await testClient.getStateInstance();
+        setInstanceState(state);
+      } catch (err: unknown) {
+        // If 429 rate-limited during login, still proceed if creds are populated
+        const message = err instanceof Error ? err.message : '';
+        if (message.includes('429')) {
+          setInstanceState({ stateInstance: 'starting' });
+        } else {
+          throw err;
+        }
+      }
       
       setCredentials(creds);
-      setInstanceState(state);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(creds));
       return true;
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Не удалось подключиться к GREEN-API. Проверьте idInstance и apiTokenInstance.';
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Не удалось подключиться к GREEN-API. Проверьте idInstance и apiTokenInstance.';
       setError(message);
       return false;
     } finally {
