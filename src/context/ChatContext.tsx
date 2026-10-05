@@ -24,6 +24,8 @@ interface ChatContextType {
   isSending: boolean;
   isPolling: boolean;
   pollingError: string | null;
+  lastSendError: string | null;
+  clearSendError: () => void;
   selectChat: (chatId: string) => void;
   createChat: (rawContact: string) => string;
   sendMessage: (text: string) => Promise<boolean>;
@@ -45,6 +47,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isSending, setIsSending] = useState<boolean>(false);
   const [isPolling, setIsPolling] = useState<boolean>(false);
   const [pollingError, setPollingError] = useState<string | null>(null);
+  const [lastSendError, setLastSendError] = useState<string | null>(null);
 
   const isMountedRef = useRef<boolean>(true);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -298,6 +301,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Optimistically show message immediately
       appendMessage(activeChatId, optimisticMessage);
       setIsSending(true);
+      setLastSendError(null);
 
       try {
         const response = await client.sendMessage({
@@ -331,7 +335,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
         });
         const msg = err instanceof Error ? err.message : 'Не удалось отправить сообщение';
-        setPollingError(msg);
+        setLastSendError(msg);
         return false;
       } finally {
         setIsSending(false);
@@ -339,6 +343,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     },
     [client, activeChatId, appendMessage]
   );
+
+  const clearSendError = useCallback(() => {
+    setLastSendError(null);
+  }, []);
 
   const deleteChat = useCallback(
     (chatId: string) => {
@@ -375,6 +383,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isSending,
         isPolling,
         pollingError,
+        lastSendError,
+        clearSendError,
         selectChat,
         createChat,
         sendMessage,

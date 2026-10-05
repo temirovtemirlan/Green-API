@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useChat } from '@/context/ChatContext';
 import {
-  Plus,
+  SquarePen,
   Search,
   Settings,
   LogOut,
@@ -12,6 +12,8 @@ import {
   Check,
   CheckCheck,
   Clock,
+  ChevronRight,
+  Mic,
   AlertTriangle,
   User,
 } from 'lucide-react';
@@ -45,51 +47,58 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenNewChat 
     if (date.toDateString() === now.toDateString()) {
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
-    return date.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
+    return date.toLocaleDateString([], { day: 'numeric', month: 'short' });
+  };
+
+  // Generate distinct pastel gradient for avatars based on chatId
+  const getAvatarGradient = (chatId: string) => {
+    const gradients = [
+      'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
+      'linear-gradient(135deg, #4E65FF 0%, #92EFFD 100%)',
+      'linear-gradient(135deg, #654ea3 0%, #eaafc8 100%)',
+      'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+      'linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%)',
+      'linear-gradient(135deg, #007aff 0%, #00c6ff 100%)',
+    ];
+    let sum = 0;
+    for (let i = 0; i < chatId.length; i++) {
+      sum += chatId.charCodeAt(i);
+    }
+    return gradients[sum % gradients.length];
+  };
+
+  const getInitials = (chatId: string) => {
+    const clean = chatId.replace(/@.*$/, '');
+    if (clean.length >= 2) {
+      return clean.slice(-2);
+    }
+    return '💬';
   };
 
   return (
     <aside style={styles.sidebar}>
-      {/* Top Bar */}
-      <div style={styles.topBar}>
-        <div style={styles.instanceInfo}>
-          <div style={styles.statusIndicator}>
-            <div
-              className={isPolling ? 'pulsing-dot' : ''}
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                backgroundColor:
-                  instanceState?.stateInstance === 'authorized'
-                    ? 'var(--accent-green)'
-                    : 'var(--accent-amber)',
-              }}
-            />
-            <span style={styles.instanceTitle}>
-              ID: {credentials?.idInstance || 'Не подключен'}
-            </span>
-          </div>
-        </div>
-
-        <div style={styles.topActions}>
+      {/* Top Bar with 'Чаты' and Action Icons */}
+      <div style={styles.header}>
+        <h1 style={styles.headerTitle}>Чаты</h1>
+        <div style={styles.headerActions}>
           <button
             onClick={onOpenNewChat}
-            style={styles.iconBtn}
-            title="Начать новый диалог"
+            style={styles.actionBtn}
+            title="Новый диалог (ввести номер)"
           >
-            <Plus size={20} color="var(--accent-color)" />
+            <SquarePen size={20} color="var(--accent-color)" />
           </button>
           <button
             onClick={onOpenSettings}
-            style={styles.iconBtn}
-            title="Параметры подключения"
+            style={styles.actionBtn}
+            title="Настройки инстанса"
           >
-            <Settings size={18} color="var(--text-secondary)" />
+            <Settings size={19} color="var(--text-tertiary)" />
           </button>
         </div>
       </div>
 
+      {/* QR Pairing Warning if notAuthorized */}
       {instanceState?.stateInstance === 'notAuthorized' && (
         <div style={styles.notAuthorizedNotice}>
           <AlertTriangle size={14} color="var(--accent-amber)" style={{ flexShrink: 0 }} />
@@ -107,17 +116,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenNewChat 
         </div>
       )}
 
-      {/* Search Bar */}
+      {/* Search Input Bar */}
       <div style={styles.searchContainer}>
         <div style={styles.searchWrap}>
-          <Search size={16} color="var(--text-tertiary)" style={{ marginLeft: 10 }} />
+          <Search size={15} color="var(--text-tertiary)" style={{ marginLeft: 10 }} />
           <input
             type="text"
-            placeholder="Поиск по чатам и номерам..."
+            placeholder="Поиск"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={styles.searchInput}
           />
+          <Mic size={15} color="var(--text-tertiary)" style={{ marginRight: 10 }} />
         </div>
       </div>
 
@@ -125,15 +135,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenNewChat 
       <div style={styles.chatList}>
         {filteredChats.length === 0 ? (
           <div style={styles.emptyContainer}>
-            <p style={styles.emptyTitle}>Чатов пока нет</p>
+            <p style={styles.emptyTitle}>Нет диалогов</p>
             <p style={styles.emptySubtitle}>
-              Нажмите кнопку «+» выше, чтобы указать номер и создать первый диалог.
+              Нажмите значок <strong>новый чат</strong> вверху справа, чтобы ввести номер собеседника в MAX или WhatsApp.
             </p>
           </div>
         ) : (
           filteredChats.map((chat) => {
             const isActive = chat.chatId === activeChatId;
             const lastMsg = chat.lastMessage;
+            const hasUnread = chat.unreadCount > 0;
 
             return (
               <div
@@ -141,41 +152,54 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenNewChat 
                 onClick={() => selectChat(chat.chatId)}
                 style={{
                   ...styles.chatItem,
-                  backgroundColor: isActive
-                    ? 'rgba(0, 113, 227, 0.12)'
-                    : 'transparent',
+                  backgroundColor: isActive ? 'rgba(0, 122, 255, 0.08)' : 'transparent',
                 }}
               >
-                <div style={styles.avatarCircle}>
-                  <User size={18} color="#ffffff" />
+                {/* Blue dot for unread or active indicator */}
+                <div style={styles.indicatorSlot}>
+                  {hasUnread && <div style={styles.unreadDot} />}
                 </div>
 
+                {/* Avatar with initials or icon */}
+                <div
+                  style={{
+                    ...styles.avatarCircle,
+                    background: getAvatarGradient(chat.chatId),
+                  }}
+                >
+                  <span style={styles.avatarInitials}>{getInitials(chat.chatId)}</span>
+                </div>
+
+                {/* Details */}
                 <div style={styles.chatDetails}>
-                  <div style={styles.chatHeaderRow}>
+                  <div style={styles.topRow}>
                     <span
                       style={{
                         ...styles.chatName,
-                        fontWeight: isActive ? 600 : 500,
+                        fontWeight: isActive ? 700 : 600,
                         color: isActive ? 'var(--accent-color)' : 'var(--text-primary)',
                       }}
                     >
                       {GreenApiClient.formatChatDisplay(chat.chatId)}
                     </span>
-                    <span style={styles.chatTime}>
-                      {formatTime(lastMsg?.timestamp || chat.updatedAt)}
-                    </span>
+                    <div style={styles.timeWrap}>
+                      <span style={styles.chatTime}>
+                        {formatTime(lastMsg?.timestamp || chat.updatedAt)}
+                      </span>
+                      <ChevronRight size={15} color="#c7c7cc" style={{ marginLeft: 2 }} />
+                    </div>
                   </div>
 
-                  <div style={styles.chatPreviewRow}>
-                    <div style={styles.messagePreview}>
+                  <div style={styles.bottomRow}>
+                    <div style={styles.previewWrap}>
                       {lastMsg?.direction === 'outgoing' && (
                         <span style={styles.statusIcon}>
                           {lastMsg.status === 'sending' ? (
-                            <Clock size={12} color="var(--text-tertiary)" />
+                            <Clock size={11} color="var(--text-tertiary)" />
                           ) : lastMsg.status === 'sent' ? (
-                            <Check size={13} color="var(--text-secondary)" />
+                            <Check size={12} color="var(--text-tertiary)" />
                           ) : (
-                            <CheckCheck size={13} color="var(--accent-color)" />
+                            <CheckCheck size={12} color="var(--accent-color)" />
                           )}
                         </span>
                       )}
@@ -186,7 +210,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenNewChat 
                       </span>
                     </div>
 
-                    {chat.unreadCount > 0 && (
+                    {hasUnread && (
                       <span style={styles.unreadBadge}>{chat.unreadCount}</span>
                     )}
                   </div>
@@ -197,27 +221,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenNewChat 
         )}
       </div>
 
-      {/* Footer & Status Engine */}
+      {/* Footer with connection status */}
       <div style={styles.footer}>
         <div style={styles.queueStatus}>
-          <Radio
-            size={14}
-            color={
-              pollingError
-                ? 'var(--accent-amber)'
-                : isPolling
+          <div
+            className={isPolling ? 'pulsing-dot' : ''}
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              backgroundColor: isPolling
                 ? 'var(--accent-green)'
-                : 'var(--text-tertiary)'
-            }
+                : 'var(--accent-amber)',
+            }}
           />
           <span style={styles.queueText}>
-            {pollingError ? (
-              <span title={pollingError}>Ожидание сети...</span>
-            ) : isPolling ? (
-              'HTTP Queue: опрос активен'
-            ) : (
-              'Очередь приостановлена'
-            )}
+            ID: {credentials?.idInstance} {isPolling ? '• Онлайн' : ''}
           </span>
         </div>
 
@@ -231,7 +250,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenNewChat 
 
 const styles: Record<string, React.CSSProperties> = {
   sidebar: {
-    width: '320px',
+    width: '340px',
     height: '100%',
     backgroundColor: 'var(--bg-sidebar)',
     borderRight: '1px solid var(--border-subtle)',
@@ -240,47 +259,38 @@ const styles: Record<string, React.CSSProperties> = {
     flexShrink: 0,
     zIndex: 10,
   },
-  topBar: {
-    height: '60px',
-    padding: '0 16px',
+  header: {
+    height: '64px',
+    padding: '0 20px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottom: '1px solid var(--border-subtle)',
   },
-  instanceInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  statusIndicator: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  instanceTitle: {
-    fontSize: '13px',
-    fontWeight: 600,
-    letterSpacing: '-0.01em',
+  headerTitle: {
+    fontSize: '22px',
+    fontWeight: 700,
+    letterSpacing: '-0.02em',
     color: 'var(--text-primary)',
   },
-  topActions: {
+  headerActions: {
     display: 'flex',
     alignItems: 'center',
-    gap: '6px',
+    gap: '10px',
   },
-  iconBtn: {
+  actionBtn: {
     width: '34px',
     height: '34px',
-    borderRadius: 'var(--radius-sm)',
+    borderRadius: '50%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.03)',
+    backgroundColor: '#f2f2f7',
   },
   notAuthorizedNotice: {
-    backgroundColor: 'rgba(255, 149, 0, 0.1)',
+    backgroundColor: 'rgba(255, 149, 0, 0.12)',
+    borderTop: '1px solid rgba(255, 149, 0, 0.2)',
     borderBottom: '1px solid rgba(255, 149, 0, 0.2)',
-    padding: '8px 14px',
+    padding: '8px 16px',
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
@@ -296,32 +306,29 @@ const styles: Record<string, React.CSSProperties> = {
     textDecoration: 'underline',
   },
   searchContainer: {
-    padding: '10px 14px',
-    borderBottom: '1px solid var(--border-subtle)',
+    padding: '0 16px 10px',
   },
   searchWrap: {
     display: 'flex',
     alignItems: 'center',
     backgroundColor: 'var(--bg-input)',
-    borderRadius: 'var(--radius-sm)',
-    height: '34px',
+    borderRadius: '10px',
+    height: '36px',
   },
   searchInput: {
     flex: 1,
-    padding: '0 10px',
-    fontSize: '13px',
+    padding: '0 8px',
+    fontSize: '14px',
     color: 'var(--text-primary)',
   },
   chatList: {
     flex: 1,
     overflowY: 'auto',
-    padding: '8px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '2px',
   },
   emptyContainer: {
-    padding: '40px 16px',
+    padding: '48px 24px',
     textAlign: 'center',
     display: 'flex',
     flexDirection: 'column',
@@ -329,33 +336,53 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '8px',
   },
   emptyTitle: {
-    fontSize: '15px',
+    fontSize: '16px',
     fontWeight: 600,
     color: 'var(--text-secondary)',
   },
   emptySubtitle: {
     fontSize: '13px',
     color: 'var(--text-tertiary)',
-    lineHeight: '1.4',
+    lineHeight: '1.45',
   },
   chatItem: {
     display: 'flex',
     alignItems: 'center',
-    padding: '10px 12px',
-    borderRadius: 'var(--radius-md)',
+    padding: '10px 16px',
     cursor: 'pointer',
-    gap: '12px',
+    position: 'relative',
     transition: 'background-color 0.15s ease',
+    borderBottom: '1px solid rgba(0, 0, 0, 0.03)',
+  },
+  indicatorSlot: {
+    width: '10px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: '4px',
+  },
+  unreadDot: {
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    backgroundColor: 'var(--accent-color)',
   },
   avatarCircle: {
-    width: '42px',
-    height: '42px',
+    width: '46px',
+    height: '46px',
     borderRadius: '50%',
-    background: 'linear-gradient(135deg, #0071e3 0%, #42a5f5 100%)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+    marginRight: '12px',
+    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.08)',
+  },
+  avatarInitials: {
+    color: '#ffffff',
+    fontSize: '15px',
+    fontWeight: 600,
+    textTransform: 'uppercase',
   },
   chatDetails: {
     flex: 1,
@@ -364,28 +391,32 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     gap: '4px',
   },
-  chatHeaderRow: {
+  topRow: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   chatName: {
-    fontSize: '14px',
+    fontSize: '14.5px',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   },
-  chatTime: {
-    fontSize: '11px',
-    color: 'var(--text-tertiary)',
+  timeWrap: {
+    display: 'flex',
+    alignItems: 'center',
     flexShrink: 0,
   },
-  chatPreviewRow: {
+  chatTime: {
+    fontSize: '11.5px',
+    color: 'var(--text-tertiary)',
+  },
+  bottomRow: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  messagePreview: {
+  previewWrap: {
     display: 'flex',
     alignItems: 'center',
     gap: '4px',
@@ -397,8 +428,8 @@ const styles: Record<string, React.CSSProperties> = {
     flexShrink: 0,
   },
   previewText: {
-    fontSize: '12px',
-    color: 'var(--text-secondary)',
+    fontSize: '13px',
+    color: 'var(--text-tertiary)',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -418,8 +449,8 @@ const styles: Record<string, React.CSSProperties> = {
     flexShrink: 0,
   },
   footer: {
-    height: '48px',
-    padding: '0 14px',
+    height: '46px',
+    padding: '0 16px',
     borderTop: '1px solid var(--border-subtle)',
     display: 'flex',
     alignItems: 'center',
@@ -432,8 +463,9 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '8px',
   },
   queueText: {
-    fontSize: '12px',
+    fontSize: '11.5px',
     color: 'var(--text-secondary)',
+    fontWeight: 500,
   },
   logoutBtn: {
     padding: '6px',

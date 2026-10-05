@@ -6,9 +6,6 @@ import { ChatProvider } from '@/context/ChatContext';
 export const metadata: Metadata = {
   title: 'GREEN-API Web Chat',
   description: 'Минималистичный мессенджер для отправки и получения сообщений через сервис GREEN-API (MAX / WhatsApp).',
-  icons: {
-    icon: '/favicon.ico',
-  },
 };
 
 export const viewport: Viewport = {

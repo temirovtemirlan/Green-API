@@ -1,37 +1,37 @@
 :root {
-  --bg-primary: #f5f5f7;
-  --bg-surface: rgba(255, 255, 255, 0.85);
+  --bg-primary: #ffffff;
+  --bg-surface: #ffffff;
   --bg-surface-elevated: #ffffff;
-  --bg-sidebar: rgba(246, 246, 248, 0.9);
-  --bg-input: #e5e5ea;
-  --bg-input-focus: #ffffff;
-  
-  --border-subtle: rgba(0, 0, 0, 0.08);
-  --border-focus: #0071e3;
+  --bg-sidebar: #ffffff;
+  --bg-input: #f0f0f2;
+  --bg-input-focus: #e8e8ed;
 
-  --text-primary: #1d1d1f;
-  --text-secondary: #86868b;
-  --text-tertiary: #a1a1a6;
+  --border-subtle: #ebebed;
+  --border-focus: #007aff;
+
+  --text-primary: #000000;
+  --text-secondary: #3c3c43;
+  --text-tertiary: #8e8e93;
   --text-inverse: #ffffff;
 
-  --accent-color: #0071e3;
-  --accent-hover: #0077ed;
+  --accent-color: #007aff;
+  --accent-hover: #0062cc;
   --accent-green: #34c759;
   --accent-red: #ff3b30;
   --accent-amber: #ff9500;
 
-  --bubble-incoming: #e9e9eb;
+  --bubble-incoming: #f2f2f7;
   --bubble-incoming-text: #000000;
-  --bubble-outgoing: #0071e3;
+  --bubble-outgoing: #007aff;
   --bubble-outgoing-text: #ffffff;
 
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.12);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
 
   --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
   --radius-full: 9999px;
 
   --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -41,35 +41,28 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg-primary: #000000;
-    --bg-surface: rgba(28, 28, 30, 0.85);
-    --bg-surface-elevated: #1c1c1e;
-    --bg-sidebar: rgba(20, 20, 22, 0.95);
+    --bg-primary: #1c1c1e;
+    --bg-surface: #1c1c1e;
+    --bg-surface-elevated: #2c2c2e;
+    --bg-sidebar: #1c1c1e;
     --bg-input: #2c2c2e;
     --bg-input-focus: #3a3a3c;
 
-    --border-subtle: rgba(255, 255, 255, 0.1);
-    --border-focus: #2997ff;
+    --border-subtle: #2c2c2e;
+    --border-focus: #0a84ff;
 
-    --text-primary: #f5f5f7;
-    --text-secondary: #86868b;
-    --text-tertiary: #636366;
+    --text-primary: #ffffff;
+    --text-secondary: #ebebf5;
+    --text-tertiary: #8e8e93;
     --text-inverse: #000000;
 
-    --accent-color: #2997ff;
-    --accent-hover: #3ca2ff;
-    --accent-green: #30d158;
-    --accent-red: #ff453a;
-    --accent-amber: #ffd60a;
+    --accent-color: #0a84ff;
+    --accent-hover: #409cff;
 
-    --bubble-incoming: #262629;
-    --bubble-incoming-text: #f5f5f7;
+    --bubble-incoming: #2c2c2e;
+    --bubble-incoming-text: #ffffff;
     --bubble-outgoing: #0a84ff;
     --bubble-outgoing-text: #ffffff;
-
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
-    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.7);
   }
 }
 
@@ -90,7 +83,7 @@ body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.45;
 }
 
 button {
@@ -112,8 +105,8 @@ textarea {
 
 /* Custom modern scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -121,21 +114,20 @@ textarea {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--text-tertiary);
+  background: rgba(142, 142, 147, 0.4);
   border-radius: var(--radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
+  background: rgba(142, 142, 147, 0.7);
 }
 
-/* Pulse keyframes for live status indicator */
 @keyframes pulseGlow {
   0% {
     box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.6);
   }
   70% {
-    box-shadow: 0 0 0 7px rgba(52, 199, 89, 0);
+    box-shadow: 0 0 0 6px rgba(52, 199, 89, 0);
   }
   100% {
     box-shadow: 0 0 0 0 rgba(52, 199, 89, 0);
@@ -150,7 +142,6 @@ textarea {
   animation: pulseGlow 2s infinite;
 }
 
-/* Glassmorphism utility */
 .glass-effect {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -168,4 +159,3 @@ textarea {
 .spin-animation {
   animation: spin 0.9s linear infinite;
 }
-

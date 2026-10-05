@@ -59,7 +59,13 @@ export class GreenApiClient {
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
       try {
         const errorData = await response.json();
-        if (errorData?.message) {
+        if (errorData?.correspondentsStatus?.description) {
+          errorMessage = errorData.correspondentsStatus.description;
+        } else if (errorData?.invokeStatus?.description) {
+          errorMessage = errorData.invokeStatus.description;
+        } else if (errorData?.description) {
+          errorMessage = errorData.description;
+        } else if (errorData?.message) {
           errorMessage = errorData.message;
         } else if (errorData?.error) {
           errorMessage = errorData.error;
@@ -100,6 +106,10 @@ export class GreenApiClient {
     signal?: AbortSignal
   ): Promise<SendMessageResponse> {
     const formattedChatId = GreenApiClient.normalizeChatId(payload.chatId);
+    if (!formattedChatId) {
+      throw new Error(`Некорректный номер получателя: "${payload.chatId}". Укажите номер с кодом страны (например, 79991234567).`);
+    }
+
     return this.request<SendMessageResponse>(
       'sendMessage',
       'POST',
@@ -153,23 +163,29 @@ export class GreenApiClient {
   }
 
   /**
-   * Helper to normalize user input (e.g. "+7 999 123-45-67") into valid chatId format
+   * Helper to normalize user input into valid chatId format
    * Supports:
-   * 1. Already formatted chatIds like "79991234567@c.us" or "...@g.us"
+   * 1. Already formatted chatIds like "79991234567@c.us", "...@g.us", "...@lid"
    * 2. Phone numbers with + or symbols: "+7 (999) 123-45-67" -> "79991234567@c.us"
-   * 3. MAX messenger IDs or formats
    */
   static normalizeChatId(rawInput: string): string {
     const trimmed = rawInput.trim();
     if (!trimmed) return '';
 
-    // If already contains domain identifier (@c.us, @g.us, etc.)
+    // If already contains domain identifier (@c.us, @g.us, @lid, etc.)
     if (trimmed.includes('@')) {
+      const [user, domain] = trimmed.split('@');
+      if (!user || !domain) return '';
       return trimmed;
     }
 
-    // Clean digits
+    // Clean all non-digit characters
     const digitsOnly = trimmed.replace(/\D/g, '');
+
+    // Must have at least 10 digits for a valid telephone number
+    if (digitsOnly.length < 10) {
+      return '';
+    }
 
     // Common Russian 8-format normalization: 8999... -> 7999...
     let normalizedDigits = digitsOnly;

@@ -71,6 +71,26 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose }) =
             />
           </div>
 
+          <div style={styles.presetsWrap}>
+            <span style={styles.presetsLabel}>Разрешенные номера вашего инстанса (тариф «Разработчик»):</span>
+            <div style={styles.chipList}>
+              <button
+                type="button"
+                onClick={() => setPhone('79991234567')}
+                style={styles.chip}
+              >
+                +7 (999) 123-45-67
+              </button>
+              <button
+                type="button"
+                onClick={() => setPhone('0553530803')}
+                style={styles.chip}
+              >
+                0553530803
+              </button>
+            </div>
+          </div>
+
           <p style={styles.hint}>
             Формат: международный номер с кодом страны (например, <code>79991234567</code> или <code>77011234567</code>).
           </p>
@@ -172,6 +192,31 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '12px 14px',
     fontSize: '15px',
     color: 'var(--text-primary)',
+  },
+  presetsWrap: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+  },
+  presetsLabel: {
+    fontSize: '11px',
+    color: 'var(--text-secondary)',
+    fontWeight: 500,
+  },
+  chipList: {
+    display: 'flex',
+    gap: '8px',
+    flexWrap: 'wrap',
+  },
+  chip: {
+    backgroundColor: '#f2f2f7',
+    color: 'var(--accent-color)',
+    padding: '6px 12px',
+    borderRadius: '16px',
+    fontSize: '12px',
+    fontWeight: 500,
+    cursor: 'pointer',
+    border: '1px solid rgba(0, 122, 255, 0.2)',
   },
   hint: {
     fontSize: '12px',

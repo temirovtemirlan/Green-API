@@ -4,22 +4,25 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useChat } from '@/context/ChatContext';
 import { GreenApiClient } from '@/services/greenApiClient';
 import {
-  Send,
-  User,
-  Trash2,
-  Clock,
+  ChevronLeft,
+  Plus,
+  Mic,
+  ArrowUp,
   Check,
   CheckCheck,
+  Clock,
   AlertCircle,
   MessageSquare,
+  Trash2,
   MoreVertical,
 } from 'lucide-react';
 
 interface ChatWindowProps {
   onOpenNewChat: () => void;
+  onBack?: () => void;
 }
 
-export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat }) => {
+export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack }) => {
   const {
     activeChat,
     activeMessages,
@@ -27,6 +30,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat }) => {
     isSending,
     clearMessages,
     deleteChat,
+    lastSendError,
+    clearSendError,
   } = useChat();
 
   const [inputText, setInputText] = useState('');
@@ -34,7 +39,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-scroll to bottom when messages change
   const scrollToBottom = (smooth = true) => {
     messagesEndRef.current?.scrollIntoView({
       behavior: smooth ? 'smooth' : 'auto',
@@ -71,10 +75,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat }) => {
 
   const handleTextareaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputText(e.target.value);
-    // Auto-grow textarea up to 120px
     const target = e.target;
     target.style.height = 'auto';
-    target.style.height = `${Math.min(target.scrollHeight, 120)}px`;
+    target.style.height = `${Math.min(target.scrollHeight, 100)}px`;
   };
 
   const formatMessageTime = (timestamp: number) => {
@@ -82,17 +85,22 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat }) => {
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // If no chat is selected, show elegant Apple-style empty placeholder
+  const getInitials = (nameOrId: string) => {
+    const clean = nameOrId.replace(/@.*$/, '');
+    if (clean.length >= 2) return clean.slice(-2);
+    return '💬';
+  };
+
   if (!activeChat) {
     return (
       <main style={styles.emptyContainer}>
         <div style={styles.emptyContent}>
           <div style={styles.emptyIconCircle}>
-            <MessageSquare size={36} color="var(--accent-color)" />
+            <MessageSquare size={38} color="var(--accent-color)" />
           </div>
           <h2 style={styles.emptyTitle}>GREEN-API Мессенджер</h2>
           <p style={styles.emptySubtitle}>
-            Выберите контакт из списка слева или начните новый чат по номеру телефона получателя в MAX или WhatsApp.
+            Выберите диалог из списка или нажмите кнопку ниже, чтобы ввести номер собеседника в MAX / WhatsApp.
           </p>
           <button onClick={onOpenNewChat} style={styles.emptyActionBtn}>
             Начать диалог
@@ -102,33 +110,42 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat }) => {
     );
   }
 
+  const displayName = GreenApiClient.formatChatDisplay(activeChat.chatId);
+
   return (
     <main style={styles.chatWindow}>
-      {/* Header */}
-      <header style={styles.header} className="glass-effect">
-        <div style={styles.headerInfo}>
-          <div style={styles.avatarCircle}>
-            <User size={20} color="#ffffff" />
-          </div>
-          <div>
-            <h2 style={styles.headerName}>
-              {GreenApiClient.formatChatDisplay(activeChat.chatId)}
-            </h2>
-            <span style={styles.headerChatId}>{activeChat.chatId}</span>
-          </div>
+      {/* Header matching screenshot */}
+      <header style={styles.header}>
+        <div style={styles.headerLeft}>
+          <button
+            onClick={onBack}
+            style={styles.backButton}
+            title="Назад к списку чатов"
+          >
+            <ChevronLeft size={20} color="var(--text-secondary)" />
+          </button>
         </div>
 
-        <div style={styles.headerActions}>
+        <div style={styles.headerCenter}>
+          <h2 style={styles.headerName}>{displayName}</h2>
+          <span style={styles.headerStatus}>был(а) недавно</span>
+        </div>
+
+        <div style={styles.headerRight}>
+          <div style={styles.headerAvatar}>
+            <span>{getInitials(activeChat.chatId)}</span>
+          </div>
+
           <button
             onClick={() => setShowMenu(!showMenu)}
-            style={styles.menuBtn}
-            title="Опции чата"
+            style={styles.menuToggleBtn}
+            title="Меню"
           >
-            <MoreVertical size={18} color="var(--text-secondary)" />
+            <MoreVertical size={18} color="var(--text-tertiary)" />
           </button>
 
           {showMenu && (
-            <div style={styles.menuDropdown} className="glass-effect">
+            <div style={styles.menuDropdown}>
               <button
                 onClick={() => {
                   clearMessages(activeChat.chatId);
@@ -146,90 +163,130 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat }) => {
                 style={{ ...styles.menuItem, color: 'var(--accent-red)' }}
               >
                 <Trash2 size={14} style={{ marginRight: 6 }} />
-                Удалить чат
+                Удалить диалог
               </button>
             </div>
           )}
         </div>
       </header>
 
-      {/* Messages Scroll Area */}
+      {/* Floating error banner if sending fails */}
+      {lastSendError && (
+        <div style={styles.errorBanner}>
+          <div style={styles.errorBannerContent}>
+            <AlertCircle size={16} color="var(--accent-red)" style={{ flexShrink: 0 }} />
+            <span style={styles.errorBannerText}>{lastSendError}</span>
+          </div>
+          <button onClick={clearSendError} style={styles.errorDismissBtn} title="Закрыть">
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Messages Canvas */}
       <div style={styles.messageList}>
+        {/* Date pill divider */}
+        <div style={styles.dateDividerWrap}>
+          <span style={styles.dateDivider}>Сегодня</span>
+        </div>
+
         {activeMessages.length === 0 ? (
           <div style={styles.noMessagesContainer}>
             <p style={styles.noMessagesText}>
-              История пуста. Отправьте первое текстовое сообщение получателю.
+              История пуста. Отправьте текстовое сообщение получателю в MAX.
             </p>
           </div>
         ) : (
-          activeMessages.map((msg) => {
+          activeMessages.map((msg, index) => {
             const isOutgoing = msg.direction === 'outgoing';
+            const isFirstUnread =
+              !isOutgoing &&
+              activeChat.unreadCount > 0 &&
+              index === activeMessages.length - activeChat.unreadCount;
 
             return (
-              <div
-                key={msg.id}
-                style={{
-                  ...styles.messageRow,
-                  justifyContent: isOutgoing ? 'flex-end' : 'flex-start',
-                }}
-              >
+              <React.Fragment key={msg.id}>
+                {isFirstUnread && (
+                  <div style={styles.unreadBanner}>
+                    <span style={styles.unreadBannerText}>Непрочитанные сообщения</span>
+                  </div>
+                )}
+
                 <div
                   style={{
-                    ...styles.messageBubble,
-                    backgroundColor: isOutgoing
-                      ? 'var(--bubble-outgoing)'
-                      : 'var(--bubble-incoming)',
-                    color: isOutgoing
-                      ? 'var(--bubble-outgoing-text)'
-                      : 'var(--bubble-incoming-text)',
-                    borderRadius: isOutgoing
-                      ? '18px 18px 4px 18px'
-                      : '18px 18px 18px 4px',
+                    ...styles.messageRow,
+                    justifyContent: isOutgoing ? 'flex-end' : 'flex-start',
                   }}
                 >
-                  {!isOutgoing && msg.senderName && (
-                    <span style={styles.senderHeader}>{msg.senderName}</span>
-                  )}
-
-                  <div style={styles.messageText}>{msg.text}</div>
-
                   <div
                     style={{
-                      ...styles.messageMeta,
-                      justifyContent: 'flex-end',
+                      ...styles.messageBubble,
+                      backgroundColor: isOutgoing
+                        ? 'var(--bubble-outgoing)'
+                        : 'var(--bubble-incoming)',
                       color: isOutgoing
-                        ? 'rgba(255, 255, 255, 0.75)'
-                        : 'var(--text-tertiary)',
+                        ? 'var(--bubble-outgoing-text)'
+                        : 'var(--bubble-incoming-text)',
+                      borderRadius: isOutgoing
+                        ? '18px 18px 4px 18px'
+                        : '18px 18px 18px 4px',
                     }}
                   >
-                    <span style={styles.timestamp}>
-                      {formatMessageTime(msg.timestamp)}
-                    </span>
-
-                    {isOutgoing && (
-                      <span style={styles.metaIcon}>
-                        {msg.status === 'sending' ? (
-                          <Clock size={12} color="rgba(255, 255, 255, 0.8)" />
-                        ) : msg.status === 'sent' ? (
-                          <Check size={13} color="rgba(255, 255, 255, 0.9)" />
-                        ) : msg.status === 'delivered' ? (
-                          <CheckCheck size={13} color="#ffffff" />
-                        ) : (
-                          <AlertCircle size={13} color="var(--accent-amber)" />
-                        )}
-                      </span>
+                    {!isOutgoing && msg.senderName && (
+                      <span style={styles.senderHeader}>{msg.senderName}</span>
                     )}
+
+                    <div style={styles.messageText}>{msg.text}</div>
+
+                    <div
+                      style={{
+                        ...styles.messageMeta,
+                        justifyContent: 'flex-end',
+                        color: isOutgoing
+                          ? 'rgba(255, 255, 255, 0.75)'
+                          : 'var(--text-tertiary)',
+                      }}
+                    >
+                      <span style={styles.timestamp}>
+                        {formatMessageTime(msg.timestamp)}
+                      </span>
+
+                      {isOutgoing && (
+                        <span style={styles.metaIcon}>
+                          {msg.status === 'sending' ? (
+                            <Clock size={11} color="rgba(255, 255, 255, 0.75)" />
+                          ) : msg.status === 'sent' ? (
+                            <Check size={12} color="rgba(255, 255, 255, 0.85)" />
+                          ) : msg.status === 'delivered' ? (
+                            <CheckCheck size={12} color="#ffffff" />
+                          ) : (
+                            <AlertCircle size={12} color="var(--accent-amber)" />
+                          )}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              </React.Fragment>
             );
           })
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Bar */}
-      <footer style={styles.inputContainer} className="glass-effect">
+      {/* Bottom Input Dock matching screenshot */}
+      <footer style={styles.inputContainer}>
+        {/* Plus attachment icon on left */}
+        <button
+          type="button"
+          onClick={onOpenNewChat}
+          style={styles.attachBtn}
+          title="Действия"
+        >
+          <Plus size={20} color="var(--text-tertiary)" />
+        </button>
+
+        {/* Input Pill */}
         <form onSubmit={handleSend} style={styles.inputForm}>
           <textarea
             ref={textareaRef}
@@ -237,23 +294,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat }) => {
             value={inputText}
             onChange={handleTextareaInput}
             onKeyDown={handleKeyDown}
-            placeholder="Напишите сообщение в MAX (Enter для отправки)..."
+            placeholder="Сообщение"
             style={styles.textarea}
           />
 
-          <button
-            type="submit"
-            disabled={!inputText.trim() || isSending}
-            style={{
-              ...styles.sendButton,
-              backgroundColor: inputText.trim()
-                ? 'var(--accent-color)'
-                : 'var(--text-tertiary)',
-              cursor: inputText.trim() && !isSending ? 'pointer' : 'default',
-            }}
-          >
-            <Send size={16} color="#ffffff" />
-          </button>
+          {inputText.trim() ? (
+            <button
+              type="submit"
+              disabled={isSending}
+              style={styles.sendActiveBtn}
+              title="Отправить (Enter)"
+            >
+              <ArrowUp size={18} color="#ffffff" strokeWidth={2.5} />
+            </button>
+          ) : (
+            <button type="button" style={styles.micBtn} title="Голосовое сообщение">
+              <Mic size={18} color="var(--text-tertiary)" />
+            </button>
+          )}
         </form>
       </footer>
     </main>
@@ -266,7 +324,7 @@ const styles: Record<string, React.CSSProperties> = {
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
-    backgroundColor: 'var(--bg-surface-elevated)',
+    backgroundColor: '#ffffff',
     position: 'relative',
     overflow: 'hidden',
   },
@@ -277,22 +335,28 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottom: '1px solid var(--border-subtle)',
-    backgroundColor: 'var(--bg-surface)',
+    backgroundColor: '#ffffff',
     zIndex: 5,
   },
-  headerInfo: {
+  headerLeft: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
+    width: '40px',
   },
-  avatarCircle: {
-    width: '38px',
-    height: '38px',
+  backButton: {
+    width: '32px',
+    height: '32px',
     borderRadius: '50%',
-    background: 'linear-gradient(135deg, #0071e3 0%, #42a5f5 100%)',
+    backgroundColor: '#f2f2f7',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  headerCenter: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    textAlign: 'center',
   },
   headerName: {
     fontSize: '15px',
@@ -300,15 +364,32 @@ const styles: Record<string, React.CSSProperties> = {
     letterSpacing: '-0.01em',
     color: 'var(--text-primary)',
   },
-  headerChatId: {
+  headerStatus: {
     fontSize: '11px',
-    color: 'var(--text-secondary)',
+    color: 'var(--text-tertiary)',
+    marginTop: '1px',
   },
-  headerActions: {
+  headerRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
     position: 'relative',
   },
-  menuBtn: {
-    padding: '8px',
+  headerAvatar: {
+    width: '38px',
+    height: '38px',
+    borderRadius: '50%',
+    background: 'linear-gradient(135deg, #007aff 0%, #00c6ff 100%)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#ffffff',
+    fontSize: '13px',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+  },
+  menuToggleBtn: {
+    padding: '6px',
     borderRadius: 'var(--radius-sm)',
     display: 'flex',
     alignItems: 'center',
@@ -316,9 +397,9 @@ const styles: Record<string, React.CSSProperties> = {
   },
   menuDropdown: {
     position: 'absolute',
-    top: '40px',
+    top: '42px',
     right: 0,
-    backgroundColor: 'var(--bg-surface-elevated)',
+    backgroundColor: '#ffffff',
     border: '1px solid var(--border-subtle)',
     borderRadius: 'var(--radius-md)',
     boxShadow: 'var(--shadow-md)',
@@ -337,15 +418,64 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text-primary)',
     display: 'flex',
     alignItems: 'center',
-    transition: 'background-color 0.15s ease',
+  },
+  errorBanner: {
+    backgroundColor: 'rgba(255, 59, 48, 0.08)',
+    borderBottom: '1px solid rgba(255, 59, 48, 0.2)',
+    padding: '10px 20px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 4,
+  },
+  errorBannerContent: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    flex: 1,
+  },
+  errorBannerText: {
+    fontSize: '12.5px',
+    color: 'var(--accent-red)',
+    lineHeight: '1.4',
+  },
+  errorDismissBtn: {
+    padding: '4px 8px',
+    color: 'var(--text-tertiary)',
+    fontSize: '14px',
+    cursor: 'pointer',
   },
   messageList: {
     flex: 1,
     overflowY: 'auto',
-    padding: '20px 24px',
+    padding: '16px 32px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '10px',
+    gap: '8px',
+    backgroundColor: '#ffffff',
+  },
+  dateDividerWrap: {
+    display: 'flex',
+    justifyContent: 'center',
+    margin: '10px 0 16px',
+  },
+  dateDivider: {
+    fontSize: '11.5px',
+    color: 'var(--text-tertiary)',
+    fontWeight: 500,
+  },
+  unreadBanner: {
+    width: '100%',
+    backgroundColor: '#f2f2f7',
+    padding: '5px 0',
+    textAlign: 'center',
+    margin: '12px 0 8px',
+    borderRadius: '4px',
+  },
+  unreadBannerText: {
+    fontSize: '11px',
+    color: 'var(--text-tertiary)',
+    fontWeight: 500,
   },
   noMessagesContainer: {
     height: '100%',
@@ -356,7 +486,7 @@ const styles: Record<string, React.CSSProperties> = {
     textAlign: 'center',
   },
   noMessagesText: {
-    fontSize: '14px',
+    fontSize: '13.5px',
     color: 'var(--text-tertiary)',
   },
   messageRow: {
@@ -364,63 +494,88 @@ const styles: Record<string, React.CSSProperties> = {
     width: '100%',
   },
   messageBubble: {
-    maxWidth: '68%',
-    padding: '10px 14px',
+    maxWidth: '62%',
+    padding: '9px 13px',
     position: 'relative',
     wordBreak: 'break-word',
-    boxShadow: 'var(--shadow-sm)',
     display: 'flex',
     flexDirection: 'column',
-    gap: '4px',
+    gap: '3px',
   },
   senderHeader: {
     fontSize: '11px',
     fontWeight: 600,
     color: 'var(--accent-color)',
-    marginBottom: '2px',
+    marginBottom: '1px',
   },
   messageText: {
     fontSize: '14px',
-    lineHeight: '1.45',
+    lineHeight: '1.4',
     whiteSpace: 'pre-wrap',
   },
   messageMeta: {
     display: 'flex',
     alignItems: 'center',
     gap: '4px',
-    fontSize: '10px',
-    marginTop: '2px',
+    fontSize: '10.5px',
+    marginTop: '1px',
   },
   timestamp: {
-    fontSize: '10px',
+    fontSize: '10.5px',
   },
   metaIcon: {
     display: 'flex',
     alignItems: 'center',
   },
   inputContainer: {
-    padding: '12px 20px',
+    padding: '12px 24px',
+    backgroundColor: '#ffffff',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
     borderTop: '1px solid var(--border-subtle)',
-    backgroundColor: 'var(--bg-surface)',
+  },
+  attachBtn: {
+    width: '36px',
+    height: '36px',
+    borderRadius: '50%',
+    backgroundColor: '#f2f2f7',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   inputForm: {
+    flex: 1,
     display: 'flex',
-    alignItems: 'flex-end',
-    backgroundColor: 'var(--bg-input)',
-    borderRadius: 'var(--radius-lg)',
-    padding: '6px 8px 6px 16px',
-    gap: '10px',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    border: '1px solid #e5e5ea',
+    borderRadius: '24px',
+    padding: '4px 8px 4px 16px',
+    gap: '8px',
   },
   textarea: {
     flex: 1,
-    maxHeight: '120px',
+    maxHeight: '100px',
     resize: 'none',
-    fontSize: '14px',
+    fontSize: '14.5px',
     lineHeight: '1.4',
     color: 'var(--text-primary)',
     padding: '6px 0',
   },
-  sendButton: {
+  sendActiveBtn: {
+    width: '32px',
+    height: '32px',
+    borderRadius: '50%',
+    backgroundColor: 'var(--accent-color)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    boxShadow: '0 2px 6px rgba(0, 122, 255, 0.35)',
+  },
+  micBtn: {
     width: '32px',
     height: '32px',
     borderRadius: '50%',
@@ -428,15 +583,13 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-    marginBottom: '2px',
-    transition: 'all var(--transition-fast)',
   },
   emptyContainer: {
     flex: 1,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'var(--bg-primary)',
+    backgroundColor: '#fbfbfd',
     padding: '24px',
   },
   emptyContent: {
@@ -451,11 +604,11 @@ const styles: Record<string, React.CSSProperties> = {
     width: '72px',
     height: '72px',
     borderRadius: '50%',
-    backgroundColor: 'rgba(0, 113, 227, 0.1)',
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: '8px',
+    marginBottom: '6px',
   },
   emptyTitle: {
     fontSize: '22px',
@@ -472,10 +625,10 @@ const styles: Record<string, React.CSSProperties> = {
     marginTop: '8px',
     backgroundColor: 'var(--accent-color)',
     color: '#ffffff',
-    padding: '11px 22px',
+    padding: '11px 24px',
     borderRadius: 'var(--radius-md)',
     fontSize: '14px',
     fontWeight: 600,
-    boxShadow: 'var(--shadow-sm)',
+    boxShadow: '0 2px 8px rgba(0, 122, 255, 0.25)',
   },
 };
