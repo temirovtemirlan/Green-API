@@ -74,3 +74,12 @@ export interface NotificationBody {
 export interface DeleteNotificationResponse {
   result: boolean;
 }
+
+export interface GreenApiRawChat {
+  id: string;
+  name?: string;
+  type: 'user' | 'group';
+  unreadCount?: number;
+  archive?: boolean;
+}
+

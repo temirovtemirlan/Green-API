@@ -16,6 +16,7 @@ import {
   Mic,
   AlertTriangle,
   User,
+  RefreshCw,
 } from 'lucide-react';
 import { GreenApiClient } from '@/services/greenApiClient';
 
@@ -26,7 +27,15 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenNewChat }) => {
   const { credentials, logout, instanceState } = useAuth();
-  const { chats, activeChatId, selectChat, isPolling, pollingError } = useChat();
+  const {
+    chats,
+    activeChatId,
+    selectChat,
+    isPolling,
+    pollingError,
+    syncChats,
+    isSyncingChats,
+  } = useChat();
 
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -81,6 +90,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenNewChat 
       <div style={styles.header}>
         <h1 style={styles.headerTitle}>Чаты</h1>
         <div style={styles.headerActions}>
+          <button
+            onClick={syncChats}
+            disabled={isSyncingChats}
+            style={styles.actionBtn}
+            title="Загрузить чаты из WhatsApp"
+          >
+            <RefreshCw
+              size={17}
+              color="var(--accent-color)"
+              className={isSyncingChats ? 'spin-animation' : ''}
+            />
+          </button>
           <button
             onClick={onOpenNewChat}
             style={styles.actionBtn}

@@ -23,9 +23,11 @@ interface ChatContextType {
   activeMessages: ChatMessage[];
   isSending: boolean;
   isPolling: boolean;
+  isSyncingChats: boolean;
   pollingError: string | null;
   lastSendError: string | null;
   clearSendError: () => void;
+  syncChats: () => Promise<void>;
   selectChat: (chatId: string) => void;
   createChat: (rawContact: string) => string;
   sendMessage: (text: string) => Promise<boolean>;
@@ -46,6 +48,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [isSending, setIsSending] = useState<boolean>(false);
   const [isPolling, setIsPolling] = useState<boolean>(false);
+  const [isSyncingChats, setIsSyncingChats] = useState<boolean>(false);
   const [pollingError, setPollingError] = useState<string | null>(null);
   const [lastSendError, setLastSendError] = useState<string | null>(null);
 
@@ -245,6 +248,56 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [client, handleIncomingNotification]);
 
+  // Fetch available chats from GREEN-API instance
+  const syncChats = useCallback(async () => {
+    if (!client) return;
+    setIsSyncingChats(true);
+    try {
+      const remoteChats = await client.getChats();
+      if (Array.isArray(remoteChats) && remoteChats.length > 0) {
+        setChats((prev) => {
+          const map = new Map<string, ChatSummary>();
+          // Preserve local chats with their existing message history
+          prev.forEach((c) => map.set(c.chatId, c));
+
+          // Merge or add remote chats from GREEN-API
+          remoteChats.forEach((rc) => {
+            if (!rc.id || rc.id.startsWith('0@')) return;
+            const existing = map.get(rc.id);
+            const displayName =
+              rc.name && rc.name.trim() ? rc.name.trim() : GreenApiClient.formatChatDisplay(rc.id);
+
+            if (existing) {
+              if (rc.name && rc.name !== rc.id) {
+                map.set(rc.id, { ...existing, name: displayName });
+              }
+            } else {
+              map.set(rc.id, {
+                chatId: rc.id,
+                name: displayName,
+                unreadCount: rc.unreadCount || 0,
+                updatedAt: Date.now(),
+              });
+            }
+          });
+
+          return Array.from(map.values());
+        });
+      }
+    } catch (err: unknown) {
+      console.warn('Failed to load remote chats:', err);
+    } finally {
+      setIsSyncingChats(false);
+    }
+  }, [client]);
+
+  // Automatically pull chats when connected
+  useEffect(() => {
+    if (client) {
+      syncChats();
+    }
+  }, [client, syncChats]);
+
   // Create or select chat
   const createChat = useCallback(
     (rawContact: string): string => {
@@ -382,9 +435,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         activeMessages,
         isSending,
         isPolling,
+        isSyncingChats,
         pollingError,
         lastSendError,
         clearSendError,
+        syncChats,
         selectChat,
         createChat,
         sendMessage,

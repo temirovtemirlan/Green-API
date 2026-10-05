@@ -5,6 +5,7 @@ import {
   SendMessageResponse,
   ReceiveNotificationResponse,
   DeleteNotificationResponse,
+  GreenApiRawChat,
 } from '@/types/greenApi';
 
 export class GreenApiClient {
@@ -95,6 +96,15 @@ export class GreenApiClient {
    */
   async getStateInstance(signal?: AbortSignal): Promise<InstanceState> {
     return this.request<InstanceState>('getStateInstance', 'GET', undefined, '', undefined, signal);
+  }
+
+  /**
+   * Get all active chats from the connected WhatsApp account
+   * Method: getChats
+   */
+  async getChats(signal?: AbortSignal): Promise<GreenApiRawChat[]> {
+    const chats = await this.request<GreenApiRawChat[]>('getChats', 'GET', undefined, '', undefined, signal);
+    return Array.isArray(chats) ? chats : [];
   }
 
   /**
