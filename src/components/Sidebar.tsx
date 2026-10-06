@@ -6,6 +6,7 @@ import { useChat } from '@/context/ChatContext';
 import {
   MagnifierLinearIcon,
   Logout2LinearIcon,
+  PenNewSquareLinearIcon,
   CheckLinearIcon,
   CheckReadLinearIcon,
   ClockCircleLinearIcon,
@@ -14,11 +15,10 @@ import {
 import { GreenApiClient } from '@/services/greenApiClient';
 
 interface SidebarProps {
-  onOpenSettings?: () => void;
   onOpenNewChat: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = () => {
+export const Sidebar: React.FC<SidebarProps> = ({ onOpenNewChat }) => {
   const { instanceState, logout } = useAuth();
   const { chats, activeChatId, selectChat, toggleChatUnread, clearAllChats } = useChat();
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,10 +55,17 @@ export const Sidebar: React.FC<SidebarProps> = () => {
 
   return (
     <aside className="w-[340px] h-full bg-white dark:bg-[#1c1c1e] border-r border-[#ebebed] dark:border-[#2c2c2e] flex flex-col flex-shrink-0 z-10 select-none">
-      {/* Top Bar with 'Чаты' and Exit Icon */}
+      {/* Top Bar with 'Чаты', New Chat button and Exit Icon */}
       <div className="h-16 px-5 flex items-center justify-between">
         <h1 className="text-[22px] font-bold tracking-tight text-black dark:text-white">Чаты</h1>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onOpenNewChat}
+            className="w-[34px] h-[34px] rounded-full flex items-center justify-center bg-[#f2f2f7] dark:bg-[#2c2c2e] hover:bg-black/5 dark:hover:bg-white/5 text-[#8e8e93] hover:text-black dark:hover:text-white transition-colors cursor-pointer"
+            title="Новый диалог"
+          >
+            <PenNewSquareLinearIcon size={18} />
+          </button>
           <button
             onClick={handleLogout}
             className="w-[34px] h-[34px] rounded-full flex items-center justify-center bg-[#f2f2f7] dark:bg-[#2c2c2e] hover:bg-[#ff3b30]/10 hover:text-[#ff3b30] text-[#8e8e93] transition-colors cursor-pointer"

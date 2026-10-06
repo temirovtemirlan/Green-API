@@ -18,8 +18,8 @@ import {
 } from '@solar-icons/react';
 
 interface ChatWindowProps {
-  onOpenNewChat: () => void;
   onBack?: () => void;
+  onOpenNewChat?: () => void;
 }
 
 const OutgoingTail: React.FC = () => (
@@ -527,12 +527,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
 
       {/* Bottom Input Dock matching screenshot */}
       <footer className="px-6 py-3 bg-white dark:bg-[#1c1c1e] flex items-center gap-3 border-t border-[#ebebed] dark:border-[#2c2c2e]">
-        {/* Plus attachment icon on left */}
+        {/* Plus attachment icon on left - disabled & non-clickable */}
         <button
           type="button"
-          onClick={onOpenNewChat}
-          className="w-9 h-9 rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] flex items-center justify-center flex-shrink-0 hover:opacity-80 transition-opacity cursor-pointer"
-          title="Действия"
+          disabled
+          aria-disabled="true"
+          className="w-9 h-9 rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] flex items-center justify-center flex-shrink-0 cursor-default pointer-events-none select-none opacity-40"
+          tabIndex={-1}
         >
           <AddCircleLinearIcon size={20} color="#8e8e93" />
         </button>
