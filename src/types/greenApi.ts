@@ -99,6 +99,13 @@ export interface GreenApiRawChat {
   archive?: boolean;
 }
 
+export interface GreenApiRawContact {
+  id: string;
+  name?: string;
+  contactName?: string;
+  type?: 'user' | 'group';
+}
+
 export interface GreenApiRawHistoryMessage {
   type: 'incoming' | 'outgoing';
   idMessage: string;

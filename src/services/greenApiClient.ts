@@ -6,6 +6,7 @@ import {
   ReceiveNotificationResponse,
   DeleteNotificationResponse,
   GreenApiRawChat,
+  GreenApiRawContact,
   GreenApiRawHistoryMessage,
 } from '@/types/greenApi';
 
@@ -149,6 +150,19 @@ export class GreenApiClient {
   async getChats(signal?: AbortSignal): Promise<GreenApiRawChat[]> {
     const chats = await this.request<GreenApiRawChat[]>('getChats', 'GET', undefined, '', undefined, signal);
     return Array.isArray(chats) ? chats : [];
+  }
+
+  /**
+   * Get all contacts from the connected WhatsApp account
+   * Method: getContacts
+   */
+  async getContacts(signal?: AbortSignal): Promise<GreenApiRawContact[]> {
+    try {
+      const contacts = await this.request<GreenApiRawContact[]>('getContacts', 'GET', undefined, '', undefined, signal);
+      return Array.isArray(contacts) ? contacts : [];
+    } catch {
+      return [];
+    }
   }
 
   /**

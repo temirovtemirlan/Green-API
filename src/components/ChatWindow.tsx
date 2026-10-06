@@ -397,17 +397,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
 
       {/* Messages Canvas */}
       <div className="flex-1 overflow-y-auto px-8 pb-4 pt-2 flex flex-col gap-[2px] bg-white dark:bg-[#1c1c1e]">
-        {/* Date pill divider */}
-        <div className="flex justify-center mt-2 mb-4">
-          <span className="text-[11.5px] text-[#8e8e93] font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] px-3 py-1 rounded-full">
-            Сегодня
-          </span>
-        </div>
-
         {activeMessages.length === 0 ? (
           <div className="h-full flex items-center justify-center p-8 text-center">
             <p className="text-[13.5px] text-[#8e8e93]">
-              История пуста. Отправьте текстовое сообщение получателю в MAX.
+              История пуста. Отправьте текстовое сообщение получателю.
             </p>
           </div>
         ) : (
@@ -415,7 +408,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
             {activeMessages.map((msg, index) => {
               const isOutgoing = msg.direction === 'outgoing';
               const nextMsg = activeMessages[index + 1];
+              const prevMsg = activeMessages[index - 1];
               const isLastInGroup = !nextMsg || nextMsg.direction !== msg.direction;
+
+              const isNewDay =
+                !prevMsg ||
+                new Date(msg.timestamp).toDateString() !== new Date(prevMsg.timestamp).toDateString();
 
               const messageKey = msg.clientId || msg.id;
               const isNew = !knownMessageIdsRef.current.has(messageKey);
@@ -442,6 +440,34 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
 
               return (
                 <React.Fragment key={messageKey}>
+                  {isNewDay && (
+                    <div className="flex justify-center mt-3 mb-2.5">
+                      <span className="text-[11.5px] text-[#8e8e93] font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] px-3 py-1 rounded-full select-none">
+                        {(() => {
+                          const date = new Date(msg.timestamp);
+                          const now = new Date();
+                          const isToday =
+                            date.getDate() === now.getDate() &&
+                            date.getMonth() === now.getMonth() &&
+                            date.getFullYear() === now.getFullYear();
+                          if (isToday) return 'Сегодня';
+
+                          const yesterday = new Date(now);
+                          yesterday.setDate(now.getDate() - 1);
+                          const isYesterday =
+                            date.getDate() === yesterday.getDate() &&
+                            date.getMonth() === yesterday.getMonth() &&
+                            date.getFullYear() === yesterday.getFullYear();
+                          if (isYesterday) return 'Вчера';
+
+                          return date.toLocaleDateString('ru-RU', {
+                            day: 'numeric',
+                            month: 'long',
+                          });
+                        })()}
+                      </span>
+                    </div>
+                  )}
                   {isFirstUnread && (
                     <div className="w-full bg-[#f2f2f7] dark:bg-[#F4F4F4] py-1.5 text-center my-3 rounded-[4px] select-none">
                       <span className="text-[11px] text-[#8e8e93] font-medium tracking-wide">

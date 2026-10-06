@@ -390,21 +390,51 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [client]);
 
-  // Fetch available chats from GREEN-API instance
+  // Fetch available chats & contacts from GREEN-API instance
   const syncChats = useCallback(
     async () => {
       if (!client) return;
       setIsSyncingChats(true);
       try {
-        const remoteChats = await client.getChats();
-        if (Array.isArray(remoteChats)) {
-          setChats((prev) => {
-            const map = new Map<string, ChatSummary>();
+        const [remoteChats, remoteContacts] = await Promise.all([
+          client.getChats().catch(() => []),
+          client.getContacts().catch(() => []),
+        ]);
 
-            // Always preserve existing local chats and lastMessage
-            prev.forEach((c) => map.set(c.chatId, c));
+        setChats((prev) => {
+          const map = new Map<string, ChatSummary>();
 
-            // Populate remote chats from GREEN-API
+          // Always preserve existing local chats and lastMessage
+          prev.forEach((c) => map.set(c.chatId, c));
+
+          // 1. Merge in address book contacts from getContacts
+          if (Array.isArray(remoteContacts)) {
+            remoteContacts.forEach((rc) => {
+              if (!rc.id || rc.id.startsWith('0@')) return;
+              const existing = map.get(rc.id);
+              const displayName =
+                (rc.contactName || rc.name || '').trim() || GreenApiClient.formatChatDisplay(rc.id);
+
+              if (existing) {
+                if (rc.contactName || rc.name) {
+                  map.set(rc.id, {
+                    ...existing,
+                    name: displayName,
+                  });
+                }
+              } else {
+                map.set(rc.id, {
+                  chatId: rc.id,
+                  name: displayName,
+                  unreadCount: 0,
+                  updatedAt: Date.now() - 86400000,
+                });
+              }
+            });
+          }
+
+          // 2. Merge in active conversations from getChats
+          if (Array.isArray(remoteChats)) {
             remoteChats.forEach((rc) => {
               if (!rc.id || rc.id.startsWith('0@')) return;
               const existing = map.get(rc.id);
@@ -432,12 +462,12 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 });
               }
             });
+          }
 
-            return Array.from(map.values());
-          });
-        }
+          return Array.from(map.values());
+        });
       } catch (err: unknown) {
-        console.warn('Failed to load remote chats:', err);
+        console.warn('Failed to load remote chats/contacts:', err);
       } finally {
         setIsSyncingChats(false);
       }
