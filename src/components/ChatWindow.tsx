@@ -344,10 +344,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
   return (
     <main className="flex-1 w-full h-full flex flex-col bg-white dark:bg-[#1c1c1e] relative overflow-hidden">
       <header
-        className={`w-full border-b border-[#ebebed] dark:border-[#2c2c2e] bg-white dark:bg-[#1c1c1e] z-10 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden flex-shrink-0 ${
+        className={`w-full border-b border-[#ebebed] dark:border-[#2c2c2e] bg-white dark:bg-[#1c1c1e] z-10 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden flex-shrink-0 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] pb-2.5 px-5 ${
           isInputFocused
-            ? 'max-md:-translate-y-full max-md:max-h-0 max-md:opacity-0 max-md:py-0 max-md:border-b-0 pointer-events-none'
-            : 'translate-y-0 max-h-[140px] opacity-100 pt-[calc(env(safe-area-inset-top,0px)+0.5rem)] pb-2 px-5'
+            ? 'max-md:-translate-y-full max-md:max-h-0 max-md:opacity-0 max-md:py-0 max-md:border-b-0 max-md:pointer-events-none'
+            : 'max-md:translate-y-0 max-md:max-h-[140px] max-md:opacity-100'
         }`}
       >
         <div className="flex items-center justify-between h-[44px]">
@@ -566,7 +566,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
       </div>
 
       <footer
-        className={`px-4 sm:px-8 md:px-12 lg:px-20 xl:px-[180px] min-[1400px]:px-[300px] pt-1.5 transition-all duration-200 bg-white dark:bg-[#1c1c1e] flex items-center gap-3 select-none ${
+        className={`px-4 sm:px-8 md:px-12 lg:px-20 xl:px-[180px] min-[1400px]:px-[300px] pt-1.5 md:pb-4 transition-all duration-200 bg-white dark:bg-[#1c1c1e] flex items-center gap-3 select-none ${
           isInputFocused
             ? 'pb-2'
             : 'pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]'
