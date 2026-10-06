@@ -258,9 +258,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
     setSessionUnreadInfo({ chatId: '', firstUnreadId: null, unreadIds: new Set() });
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
+      textareaRef.current.focus();
     }
 
     await sendMessage(text);
+
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -564,14 +569,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
           type="button"
           disabled
           aria-disabled="true"
-          className="w-[34px] h-[34px] min-w-[34px] min-h-[34px] rounded-full bg-[#f0f0f2] dark:bg-[#2c2c2e] flex items-center justify-center flex-shrink-0 cursor-default pointer-events-none select-none text-[#8e8e93]"
+          className="w-[44px] h-[44px] min-w-[44px] min-h-[44px] rounded-full bg-[#f0f0f2] dark:bg-[#2c2c2e] flex items-center justify-center flex-shrink-0 cursor-default pointer-events-none select-none text-[#8e8e93]"
           tabIndex={-1}
         >
-          <AddLinearIcon size={18} color="#8e8e93" />
+          <AddLinearIcon size={22} color="#8e8e93" />
         </button>
 
         {/* Input Pill */}
-        <form onSubmit={handleSend} className="flex-1 flex items-center bg-white dark:bg-[#2c2c2e] border border-[#e5e5ea] dark:border-[#3a3a3c] rounded-full py-1.5 px-4 gap-2">
+        <form
+          onSubmit={handleSend}
+          className="flex-1 min-h-[44px] flex items-center bg-white dark:bg-[#2c2c2e] border border-[#e5e5ea] dark:border-[#3a3a3c] rounded-full py-1 pl-4 pr-1.5 gap-2"
+        >
           <textarea
             ref={textareaRef}
             rows={1}
@@ -587,17 +595,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
             onKeyDown={handleKeyDown}
             placeholder="Сообщение"
             enterKeyHint="send"
-            className="flex-1 max-h-[100px] resize-none text-[16px] md:text-[15.5px] leading-normal text-black dark:text-white bg-transparent outline-none py-1 px-1 placeholder:text-[#8e8e93]"
+            className="flex-1 max-h-[100px] resize-none text-[16px] md:text-[15.5px] leading-normal text-black dark:text-white bg-transparent outline-none py-1.5 px-1 placeholder:text-[#8e8e93]"
           />
 
           {inputText.trim() ? (
             <button
               type="submit"
               disabled={isSending}
-              className="w-8 h-8 rounded-full bg-[#007aff] hover:bg-[#0062cc] flex items-center justify-center flex-shrink-0 shadow-md text-white transition-colors cursor-pointer"
+              onPointerDown={(e) => {
+                e.preventDefault();
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+              }}
+              className="w-[36px] h-[36px] min-w-[36px] min-h-[36px] rounded-full bg-[#007aff] hover:bg-[#0062cc] active:scale-95 flex items-center justify-center flex-shrink-0 shadow-md text-white transition-all cursor-pointer"
               title="Отправить (Enter)"
             >
-              <ArrowUpLinearIcon size={18} color="#ffffff" strokeWidth={2.5} />
+              <ArrowUpLinearIcon size={20} color="#ffffff" strokeWidth={2.5} />
             </button>
           ) : null}
         </form>
