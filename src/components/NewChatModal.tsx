@@ -81,12 +81,12 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose }) =
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[12px] font-medium text-[#8e8e93]">
+          <div className="flex flex-col gap-2">
+            <label className="text-[14px] font-semibold text-[#1c1c1e] dark:text-[#ebebf5]">
               Номер телефона собеседника
             </label>
             <div className="flex items-center bg-[#f0f0f2] dark:bg-[#2c2c2e] rounded-xl overflow-hidden px-3.5 focus-within:ring-2 focus-within:ring-[#007aff]/30 focus-within:bg-white dark:focus-within:bg-[#242426] focus-within:border-[#007aff] border border-transparent transition-all">
-              <PhoneLinearIcon size={17} color="#8e8e93" className="flex-shrink-0" />
+              <PhoneLinearIcon size={18} color="#8e8e93" className="flex-shrink-0" />
               <input
                 type="tel"
                 placeholder="+7 (999) 123-45-67"
@@ -95,7 +95,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose }) =
                   setPhone(e.target.value);
                   if (error) setError(null);
                 }}
-                className="flex-1 py-2.5 px-2.5 text-[14.5px] text-black dark:text-white bg-transparent outline-none placeholder:text-[#8e8e93]"
+                className="flex-1 py-3 px-2.5 text-[16px] text-black dark:text-white bg-transparent outline-none placeholder:text-[#8e8e93]"
                 autoFocus
               />
               {phone && (
@@ -108,7 +108,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose }) =
                 </button>
               )}
             </div>
-            <span className="text-[11px] text-[#8e8e93] px-0.5">
+            <span className="text-[13px] text-[#8e8e93] px-0.5">
               Укажите с кодом страны (например, 7... или 996...)
             </span>
           </div>
@@ -117,13 +117,13 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose }) =
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-[13.5px] font-medium text-[#8e8e93] hover:text-black dark:hover:text-white rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+              className="px-4 py-2.5 text-[14px] font-medium text-[#8e8e93] hover:text-black dark:hover:text-white rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
             >
               Отмена
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-[13.5px] font-semibold bg-[#007aff] hover:bg-[#0062cc] active:scale-[0.98] text-white rounded-xl shadow-sm transition-all cursor-pointer"
+              className="px-4 py-2.5 text-[14px] font-semibold bg-[#007aff] hover:bg-[#0062cc] active:scale-[0.98] text-white rounded-xl shadow-sm transition-all cursor-pointer"
             >
               Перейти в чат
             </button>

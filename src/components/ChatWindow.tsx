@@ -356,11 +356,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
         </div>
 
         <div className="flex flex-col items-center text-center">
-          <h2 className="text-[15px] font-semibold tracking-tight text-black dark:text-white leading-tight">
+          <h2 className="text-[16px] font-semibold tracking-tight text-black dark:text-white leading-tight">
             {displayName}
           </h2>
           {statusSubtitle ? (
-            <span className="text-[11px] text-[#8e8e93] mt-0.5 leading-tight">
+            <span className="text-[12px] text-[#8e8e93] mt-0.5 leading-tight">
               {statusSubtitle}
             </span>
           ) : null}
@@ -442,7 +442,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
                 <React.Fragment key={messageKey}>
                   {isNewDay && (
                     <div className="flex justify-center mt-3 mb-2.5">
-                      <span className="text-[11.5px] text-[#8e8e93] font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] px-3 py-1 rounded-full select-none">
+                      <span className="text-[12.5px] text-[#8e8e93] font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] px-3.5 py-1 rounded-full select-none">
                         {(() => {
                           const date = new Date(msg.timestamp);
                           const now = new Date();
@@ -470,7 +470,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
                   )}
                   {isFirstUnread && (
                     <div className="w-full bg-[#f2f2f7] dark:bg-[#F4F4F4] py-1.5 text-center my-3 rounded-[4px] select-none">
-                      <span className="text-[11px] text-[#8e8e93] font-medium tracking-wide">
+                      <span className="text-[12px] text-[#8e8e93] font-medium tracking-wide">
                         Непрочитанные сообщения
                       </span>
                     </div>
@@ -513,10 +513,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
                           }`
                           }`}
                       >
-                        <div className="text-sm leading-snug whitespace-pre-wrap">{msg.text}</div>
+                        <div className="text-[15.5px] leading-relaxed whitespace-pre-wrap">{msg.text}</div>
 
                         <div
-                          className={`flex items-center justify-end gap-1 text-[10.5px] mt-0.5 ${isOutgoing ? 'text-white/75' : 'text-[#8e8e93]'
+                          className={`flex items-center justify-end gap-1 text-[11.5px] mt-0.5 ${isOutgoing ? 'text-white/80' : 'text-[#8e8e93]'
                             }`}
                         >
                           <span>{formatMessageTime(msg.timestamp)}</span>
@@ -573,7 +573,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
             onChange={handleTextareaInput}
             onKeyDown={handleKeyDown}
             placeholder="Сообщение"
-            className="flex-1 max-h-[100px] resize-none text-[14.5px] leading-normal text-black dark:text-white bg-transparent outline-none py-1.5 placeholder:text-[#8e8e93]"
+            className="flex-1 max-h-[100px] resize-none text-[15.5px] leading-normal text-black dark:text-white bg-transparent outline-none py-1.5 placeholder:text-[#8e8e93]"
           />
 
           {inputText.trim() ? (
