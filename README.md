@@ -63,4 +63,6 @@ npm run start
 ## Автор
 
 - **Темирлан Темиров**
+- Telegram: [@betterrman](https://t.me/betterrman)
+- LinkedIn: [temirlan-temirov](https://www.linkedin.com/in/temirlan-temirov/)
 - GitHub: [@temirovtemirlan](https://github.com/temirovtemirlan)
