@@ -197,7 +197,12 @@ export class GreenApiClient {
       return '';
     }
 
-    // Common Russian 8-format normalization: 8999... -> 7999...
+    // International numbers cannot start with 0 (WhatsApp / GREEN-API requirement)
+    if (digitsOnly.startsWith('0')) {
+      return '';
+    }
+
+    // Common Russian/Kazakh 8-format normalization: 8999... -> 7999...
     let normalizedDigits = digitsOnly;
     if (digitsOnly.length === 11 && digitsOnly.startsWith('8')) {
       normalizedDigits = '7' + digitsOnly.slice(1);

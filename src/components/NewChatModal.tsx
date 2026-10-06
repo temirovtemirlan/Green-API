@@ -24,6 +24,16 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose }) =
       return;
     }
 
+    const digitsOnly = cleanPhone.replace(/\D/g, '');
+    if (digitsOnly.startsWith('0')) {
+      setError('Номер не должен начинаться с 0. Укажите номер в международном формате с кодом страны (например, 7... или 996...)');
+      return;
+    }
+    if (digitsOnly.length < 10) {
+      setError('Номер слишком короткий (минимум 10 цифр с кодом страны)');
+      return;
+    }
+
     const chatId = createChat(cleanPhone);
     if (!chatId) {
       setError('Некорректный номер или идентификатор');
@@ -72,21 +82,14 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose }) =
           </div>
 
           <div style={styles.presetsWrap}>
-            <span style={styles.presetsLabel}>Разрешенные номера вашего инстанса (тариф «Разработчик»):</span>
+            <span style={styles.presetsLabel}>Разрешенный тестовый номер инстанса:</span>
             <div style={styles.chipList}>
               <button
                 type="button"
                 onClick={() => setPhone('79991234567')}
                 style={styles.chip}
               >
-                +7 (999) 123-45-67
-              </button>
-              <button
-                type="button"
-                onClick={() => setPhone('0553530803')}
-                style={styles.chip}
-              >
-                0553530803
+                +7 (999) 123-45-67 (проверено)
               </button>
             </div>
           </div>
