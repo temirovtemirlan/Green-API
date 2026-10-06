@@ -11,6 +11,7 @@ import {
   CheckReadLinearIcon,
   ClockCircleLinearIcon,
   DangerTriangleLinearIcon,
+  CloseLinearIcon,
 } from '@solar-icons/react';
 import { GreenApiClient } from '@/services/greenApiClient';
 
@@ -60,7 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenNewChat }) => {
       } w-full md:w-[340px] md:min-w-[340px] h-full bg-white dark:bg-[#1c1c1e] border-r border-[#ebebed] dark:border-[#2c2c2e] flex-col flex-shrink-0 z-10 select-none`}
     >
       {/* Top Bar with 'Чаты', New Chat button and Exit Icon */}
-      <div className="h-16 px-5 flex items-center justify-between">
+      <div className="pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] pb-2.5 px-5 flex items-center justify-between">
         <h1 className="text-[22px] font-bold tracking-tight text-black dark:text-white">Чаты</h1>
         <div className="flex items-center gap-2">
           <button
@@ -101,7 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenNewChat }) => {
       {/* Search Input Bar */}
       <div className="px-4 pb-2.5">
         <div className="flex items-center bg-[#f0f0f2] dark:bg-[#2c2c2e] rounded-[10px] h-9 px-2.5">
-          <MagnifierLinearIcon size={15} color="#8e8e93" className="ml-1" />
+          <MagnifierLinearIcon size={15} color="#8e8e93" className="ml-1 flex-shrink-0" />
           <input
             type="text"
             placeholder="Поиск"
@@ -109,6 +110,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenNewChat }) => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1 px-2 text-[16px] md:text-sm text-black dark:text-white bg-transparent outline-none placeholder:text-[#8e8e93]"
           />
+          {searchQuery ? (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="w-5 h-5 rounded-full bg-[#8e8e93]/25 hover:bg-[#8e8e93]/40 active:scale-90 flex items-center justify-center text-[#3c3c43] dark:text-[#ebebf5] hover:text-black dark:hover:text-white transition-all cursor-pointer flex-shrink-0"
+              title="Очистить поиск"
+            >
+              <CloseLinearIcon size={12} />
+            </button>
+          ) : null}
         </div>
       </div>
 

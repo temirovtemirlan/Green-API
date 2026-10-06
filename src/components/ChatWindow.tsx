@@ -196,6 +196,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
   }, [activeChat?.chatId, activeMessages, markChatAsRead]);
 
   const [inputText, setInputText] = useState('');
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -203,6 +204,20 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
   const knownMessageIdsRef = useRef<Set<string>>(new Set());
   const lastChatIdRef = useRef<string | null>(null);
   const prevMessagesLengthRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+    const handleVisualResize = () => {
+      if (isInputFocused) {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      }
+    };
+    const vv = window.visualViewport;
+    vv.addEventListener('resize', handleVisualResize);
+    return () => {
+      vv.removeEventListener('resize', handleVisualResize);
+    };
+  }, [isInputFocused]);
 
   // Sync known message IDs so only new/recent messages animate and history doesn't lag Chrome
   if (activeChat && lastChatIdRef.current !== activeChat.chatId) {
@@ -316,36 +331,44 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
 
   return (
     <main className="flex-1 w-full h-full flex flex-col bg-white dark:bg-[#1c1c1e] relative overflow-hidden">
-      <header className="h-[60px] px-5 flex items-center justify-between border-b border-[#ebebed] dark:border-[#2c2c2e] bg-white dark:bg-[#1c1c1e] z-10">
-        <div className="flex items-center w-[38px]">
-          <button
-            onClick={onBack || closeChat}
-            className="w-[34px] h-[34px] min-w-[34px] min-h-[34px] rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all cursor-pointer"
-            title="Назад к списку чатов (Esc)"
-          >
-            <AltArrowLeftLinearIcon size={18} color="#3c3c43" />
-          </button>
-        </div>
+      <header
+        className={`w-full border-b border-[#ebebed] dark:border-[#2c2c2e] bg-white dark:bg-[#1c1c1e] z-10 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden flex-shrink-0 ${
+          isInputFocused
+            ? 'max-md:-translate-y-full max-md:max-h-0 max-md:opacity-0 max-md:py-0 max-md:border-b-0 pointer-events-none'
+            : 'translate-y-0 max-h-[140px] opacity-100 pt-[calc(env(safe-area-inset-top,0px)+0.5rem)] pb-2 px-5'
+        }`}
+      >
+        <div className="flex items-center justify-between h-[44px]">
+          <div className="flex items-center w-[38px]">
+            <button
+              onClick={onBack || closeChat}
+              className="w-[34px] h-[34px] min-w-[34px] min-h-[34px] rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all cursor-pointer"
+              title="Назад к списку чатов (Esc)"
+            >
+              <AltArrowLeftLinearIcon size={18} color="#3c3c43" />
+            </button>
+          </div>
 
-        <div className="flex flex-col items-center text-center">
-          <h2 className="text-[16px] font-semibold tracking-tight text-black dark:text-white leading-tight">
-            {displayName}
-          </h2>
-          {statusSubtitle ? (
-            <span className="text-[12px] text-[#8e8e93] mt-0.5 leading-tight">
-              {statusSubtitle}
-            </span>
-          ) : null}
-        </div>
+          <div className="flex flex-col items-center text-center">
+            <h2 className="text-[16px] font-semibold tracking-tight text-black dark:text-white leading-tight">
+              {displayName}
+            </h2>
+            {statusSubtitle ? (
+              <span className="text-[12px] text-[#8e8e93] mt-0.5 leading-tight">
+                {statusSubtitle}
+              </span>
+            ) : null}
+          </div>
 
-        <div className="flex items-center gap-2 relative">
-          <div className="w-[38px] h-[38px] rounded-full overflow-hidden bg-white flex items-center justify-center flex-shrink-0">
-            <img
-              src="/default-avatar.svg"
-              alt=""
-              className="w-full h-full object-cover rounded-full block select-none"
-              draggable={false}
-            />
+          <div className="flex items-center gap-2 relative">
+            <div className="w-[38px] h-[38px] rounded-full overflow-hidden bg-white flex items-center justify-center flex-shrink-0">
+              <img
+                src="/default-avatar.svg"
+                alt=""
+                className="w-full h-full object-cover rounded-full block select-none"
+                draggable={false}
+              />
+            </div>
           </div>
         </div>
       </header>
@@ -366,7 +389,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-4 sm:px-8 md:px-12 lg:px-20 xl:px-[180px] min-[1400px]:px-[300px] pb-4 pt-2 flex flex-col gap-[2px] bg-white dark:bg-[#1c1c1e]">
+      <div
+        onPointerDown={() => {
+          if (isInputFocused) {
+            textareaRef.current?.blur();
+          }
+        }}
+        className="flex-1 overflow-y-auto px-4 sm:px-8 md:px-12 lg:px-20 xl:px-[180px] min-[1400px]:px-[300px] pb-4 pt-2 flex flex-col gap-[2px] bg-white dark:bg-[#1c1c1e]"
+      >
         {activeMessages.length === 0 ? (
           <div className="h-full flex items-center justify-center p-8 text-center">
             <p className="text-[13.5px] text-[#8e8e93]">
@@ -523,7 +553,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
         <div ref={messagesEndRef} />
       </div>
 
-      <footer className="px-4 sm:px-8 md:px-12 lg:px-20 xl:px-[180px] min-[1400px]:px-[300px] pt-1 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] bg-white dark:bg-[#1c1c1e] flex items-center gap-3 select-none">
+      <footer
+        className={`px-4 sm:px-8 md:px-12 lg:px-20 xl:px-[180px] min-[1400px]:px-[300px] pt-1.5 transition-all duration-200 bg-white dark:bg-[#1c1c1e] flex items-center gap-3 select-none ${
+          isInputFocused
+            ? 'pb-2'
+            : 'pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]'
+        }`}
+      >
         <button
           type="button"
           disabled
@@ -541,6 +577,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
             rows={1}
             value={inputText}
             onChange={handleTextareaInput}
+            onFocus={() => {
+              setIsInputFocused(true);
+              setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+              }, 120);
+            }}
+            onBlur={() => setIsInputFocused(false)}
             onKeyDown={handleKeyDown}
             placeholder="Сообщение"
             enterKeyHint="send"
