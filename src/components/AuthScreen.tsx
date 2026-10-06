@@ -83,7 +83,7 @@ export const AuthScreen: React.FC = () => {
               placeholder="idInstance"
               value={idInstance}
               onChange={(e) => setIdInstance(e.target.value)}
-              className="w-full bg-[#f0f0f2] dark:bg-[#2c2c2e] text-black dark:text-white placeholder:text-[#8e8e93] border border-[#e5e5ea] dark:border-[#3a3a3c] rounded-[8px] px-3.5 py-2.5 text-sm outline-none focus:border-[#3B9702] focus:ring-1 focus:ring-[#3B9702] transition-colors"
+              className="w-full bg-[#f0f0f2] dark:bg-[#2c2c2e] text-black dark:text-white placeholder:text-[#8e8e93] border border-[#e5e5ea] dark:border-[#3a3a3c] rounded-[8px] px-3.5 py-2.5 text-[16px] md:text-sm outline-none focus:border-[#3B9702] focus:ring-1 focus:ring-[#3B9702] transition-colors"
               disabled={isLoading}
               autoFocus
             />
@@ -97,7 +97,7 @@ export const AuthScreen: React.FC = () => {
                 placeholder="apiTokenInstance"
                 value={apiTokenInstance}
                 onChange={(e) => setApiTokenInstance(e.target.value)}
-                className="w-full bg-[#f0f0f2] dark:bg-[#2c2c2e] text-black dark:text-white placeholder:text-[#8e8e93] border border-[#e5e5ea] dark:border-[#3a3a3c] rounded-[8px] pl-3.5 pr-10 py-2.5 text-sm outline-none focus:border-[#3B9702] focus:ring-1 focus:ring-[#3B9702] transition-colors"
+                className="w-full bg-[#f0f0f2] dark:bg-[#2c2c2e] text-black dark:text-white placeholder:text-[#8e8e93] border border-[#e5e5ea] dark:border-[#3a3a3c] rounded-[8px] pl-3.5 pr-10 py-2.5 text-[16px] md:text-sm outline-none focus:border-[#3B9702] focus:ring-1 focus:ring-[#3B9702] transition-colors"
                 disabled={isLoading}
               />
               <button
@@ -128,7 +128,7 @@ export const AuthScreen: React.FC = () => {
                   placeholder="https://api.green-api.com"
                   value={apiUrl}
                   onChange={(e) => setApiUrl(e.target.value)}
-                  className="w-full bg-[#f0f0f2] dark:bg-[#2c2c2e] text-black dark:text-white placeholder:text-[#8e8e93] border border-[#e5e5ea] dark:border-[#3a3a3c] rounded-[8px] px-3.5 py-2.5 text-sm outline-none focus:border-[#3B9702] focus:ring-1 focus:ring-[#3B9702] transition-colors"
+                  className="w-full bg-[#f0f0f2] dark:bg-[#2c2c2e] text-black dark:text-white placeholder:text-[#8e8e93] border border-[#e5e5ea] dark:border-[#3a3a3c] rounded-[8px] px-3.5 py-2.5 text-[16px] md:text-sm outline-none focus:border-[#3B9702] focus:ring-1 focus:ring-[#3B9702] transition-colors"
                   disabled={isLoading}
                 />
               </div>

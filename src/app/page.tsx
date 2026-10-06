@@ -35,7 +35,7 @@ export default function Home() {
 
   if (!isMounted || isLoading) {
     return (
-      <div className="flex items-center justify-center w-screen h-screen bg-[#f5f5f7]">
+      <div className="flex items-center justify-center w-full h-[100dvh] bg-[#f5f5f7]">
         <div className="w-8 h-8 rounded-full border-[3px] border-[#007aff]/20 border-t-[#007aff] animate-spin" />
       </div>
     );
@@ -46,7 +46,7 @@ export default function Home() {
   }
 
   return (
-    <div className="flex w-screen h-screen overflow-hidden bg-white dark:bg-[#1c1c1e]">
+    <div className="flex w-full h-[100dvh] overflow-hidden bg-white dark:bg-[#1c1c1e]">
       <Sidebar
         onOpenNewChat={() => setIsNewChatOpen(true)}
       />

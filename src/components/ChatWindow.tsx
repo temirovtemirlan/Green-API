@@ -523,7 +523,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
         <div ref={messagesEndRef} />
       </div>
 
-      <footer className="px-4 sm:px-8 md:px-12 lg:px-20 xl:px-[180px] min-[1400px]:px-[300px] pt-1 pb-5 bg-white dark:bg-[#1c1c1e] flex items-center gap-3 select-none">
+      <footer className="px-4 sm:px-8 md:px-12 lg:px-20 xl:px-[180px] min-[1400px]:px-[300px] pt-1 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] bg-white dark:bg-[#1c1c1e] flex items-center gap-3 select-none">
         <button
           type="button"
           disabled
@@ -543,7 +543,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
             onChange={handleTextareaInput}
             onKeyDown={handleKeyDown}
             placeholder="Сообщение"
-            className="flex-1 max-h-[100px] resize-none text-[15.5px] leading-normal text-black dark:text-white bg-transparent outline-none py-1 px-1 placeholder:text-[#8e8e93]"
+            enterKeyHint="send"
+            className="flex-1 max-h-[100px] resize-none text-[16px] md:text-[15.5px] leading-normal text-black dark:text-white bg-transparent outline-none py-1 px-1 placeholder:text-[#8e8e93]"
           />
 
           {inputText.trim() ? (

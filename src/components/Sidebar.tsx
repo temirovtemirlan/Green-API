@@ -107,7 +107,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenNewChat }) => {
             placeholder="Поиск"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 px-2 text-sm text-black dark:text-white bg-transparent outline-none placeholder:text-[#8e8e93]"
+            className="flex-1 px-2 text-[16px] md:text-sm text-black dark:text-white bg-transparent outline-none placeholder:text-[#8e8e93]"
           />
         </div>
       </div>
