@@ -27,16 +27,22 @@ interface ChatContextType {
   pollingError: string | null;
   lastSendError: string | null;
   clearSendError: () => void;
-  syncChats: () => Promise<void>;
+  syncChats: (forceFresh?: boolean) => Promise<void>;
+  clearAllChats: () => void;
   selectChat: (chatId: string) => void;
+  closeChat: () => void;
+  toggleChatUnread: (chatId: string) => void;
+  markChatAsRead: (chatId: string) => void;
   createChat: (rawContact: string) => string;
   sendMessage: (text: string) => Promise<boolean>;
   deleteChat: (chatId: string) => void;
   clearMessages: (chatId: string) => void;
+  loadChatHistory: (chatId: string) => Promise<void>;
 }
 
 const CHATS_STORAGE_KEY = 'green_api_chats_v1';
 const MESSAGES_STORAGE_KEY = 'green_api_messages_v1';
+const ACTIVE_CHAT_STORAGE_KEY = 'green_api_active_chat_v1';
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
@@ -54,48 +60,97 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isMountedRef = useRef<boolean>(true);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const [dataInstanceId, setDataInstanceId] = useState<string | null>(null);
 
-  // Load chats & messages from localStorage when credentials are ready
+  // Load chats, messages & activeChatId from localStorage when credentials change
   useEffect(() => {
-    if (!credentials?.idInstance) {
+    const nextId = credentials?.idInstance || null;
+    if (!nextId) {
+      setActiveChatId(null);
+      setDataInstanceId(null);
       setChats([]);
       setMessages({});
-      setActiveChatId(null);
       return;
     }
 
     try {
-      const savedChats = localStorage.getItem(`${CHATS_STORAGE_KEY}_${credentials.idInstance}`);
-      const savedMessages = localStorage.getItem(`${MESSAGES_STORAGE_KEY}_${credentials.idInstance}`);
-      if (savedChats) {
-        setChats(JSON.parse(savedChats));
+      const savedChats = localStorage.getItem(`${CHATS_STORAGE_KEY}_${nextId}`);
+      const savedMessages = localStorage.getItem(`${MESSAGES_STORAGE_KEY}_${nextId}`);
+      const savedActiveChat = localStorage.getItem(`${ACTIVE_CHAT_STORAGE_KEY}_${nextId}`);
+
+      const parsedChats: ChatSummary[] = savedChats ? JSON.parse(savedChats) : [];
+      const parsedMessages: Record<string, ChatMessage[]> = savedMessages ? JSON.parse(savedMessages) : {};
+
+      // On session restore (F5), clear isUnread from restored history so reload doesn't trigger banner on old messages
+      const cleanedMessages: Record<string, ChatMessage[]> = {};
+      for (const [cId, msgList] of Object.entries(parsedMessages)) {
+        cleanedMessages[cId] = msgList.map((m) => (m.isUnread ? { ...m, isUnread: false } : m));
       }
-      if (savedMessages) {
-        setMessages(JSON.parse(savedMessages));
+      setMessages(cleanedMessages);
+
+      const cleanedChats = parsedChats.map((c) => {
+        if (c.chatId === savedActiveChat) {
+          return { ...c, unreadCount: 0 };
+        }
+        const msgs = cleanedMessages[c.chatId] || [];
+        if (msgs.length === 0 && c.unreadCount > 0) {
+          return { ...c, unreadCount: 0 };
+        }
+        return c;
+      });
+
+      if (savedActiveChat) {
+        setChats(cleanedChats);
+        setActiveChatId(savedActiveChat);
+      } else {
+        setChats(cleanedChats);
+        setActiveChatId(null);
       }
     } catch {
-      // LocalStorage read error
+      setChats([]);
+      setMessages({});
+      setActiveChatId(null);
     }
+    setDataInstanceId(nextId);
   }, [credentials?.idInstance]);
 
-  // Persist chats & messages to localStorage
+  // Persist activeChatId to localStorage whenever it changes
   useEffect(() => {
-    if (!credentials?.idInstance) return;
+    if (!credentials?.idInstance || dataInstanceId !== credentials.idInstance) return;
+    try {
+      if (activeChatId) {
+        localStorage.setItem(`${ACTIVE_CHAT_STORAGE_KEY}_${credentials.idInstance}`, activeChatId);
+      } else {
+        localStorage.removeItem(`${ACTIVE_CHAT_STORAGE_KEY}_${credentials.idInstance}`);
+      }
+    } catch {
+      // Storage error
+    }
+  }, [activeChatId, credentials?.idInstance, dataInstanceId]);
+
+  // Persist chats & messages to localStorage only when in-memory state matches active instance
+  useEffect(() => {
+    if (!credentials?.idInstance || dataInstanceId !== credentials.idInstance) return;
     try {
       localStorage.setItem(`${CHATS_STORAGE_KEY}_${credentials.idInstance}`, JSON.stringify(chats));
     } catch {
       // Quota or storage error
     }
-  }, [chats, credentials?.idInstance]);
+  }, [chats, credentials?.idInstance, dataInstanceId]);
 
   useEffect(() => {
-    if (!credentials?.idInstance) return;
+    if (!credentials?.idInstance || dataInstanceId !== credentials.idInstance) return;
     try {
       localStorage.setItem(`${MESSAGES_STORAGE_KEY}_${credentials.idInstance}`, JSON.stringify(messages));
     } catch {
       // Storage quota error
     }
-  }, [messages, credentials?.idInstance]);
+  }, [messages, credentials?.idInstance, dataInstanceId]);
+
+  const activeChatIdRef = useRef<string | null>(activeChatId);
+  useEffect(() => {
+    activeChatIdRef.current = activeChatId;
+  }, [activeChatId]);
 
   // Helper to add or update an incoming or outgoing message
   const appendMessage = useCallback(
@@ -117,17 +172,18 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const index = prev.findIndex((c) => c.chatId === chatId);
         const displayName = senderDisplayName || GreenApiClient.formatChatDisplay(chatId);
 
+        const isIncoming = message.direction === 'incoming';
+
         if (index >= 0) {
           const updated = [...prev];
           const current = updated[index];
+          const isActive = activeChatIdRef.current === chatId;
           updated[index] = {
             ...current,
             name: current.name || displayName,
             lastMessage: message,
             unreadCount:
-              activeChatId === chatId
-                ? 0
-                : message.direction === 'incoming'
+              isIncoming && !isActive
                 ? current.unreadCount + 1
                 : current.unreadCount,
             updatedAt: message.timestamp,
@@ -135,18 +191,19 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Move updated chat to the top
           return [updated[index], ...updated.filter((_, i) => i !== index)];
         } else {
+          const isActive = activeChatIdRef.current === chatId;
           const newChat: ChatSummary = {
             chatId,
             name: displayName,
             lastMessage: message,
-            unreadCount: activeChatId === chatId || message.direction === 'outgoing' ? 0 : 1,
+            unreadCount: isIncoming && !isActive ? 1 : 0,
             updatedAt: message.timestamp,
           };
           return [newChat, ...prev];
         }
       });
     },
-    [activeChatId]
+    []
   );
 
   // Process incoming notification payload
@@ -157,31 +214,102 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const type = body.typeWebhook;
 
-      // Check if it is an incoming message
-      if (type === 'incomingMessageReceived') {
-        const chatId = body.senderData?.chatId;
-        const idMessage = body.idMessage || `inc_${Date.now()}`;
-        const senderName = body.senderData?.senderName || body.senderData?.senderContactName;
-        
+      // Handle outgoing message status updates (sent -> delivered -> read)
+      if (type === 'outgoingMessageStatus') {
+        const idMsg = body.idMessage;
+        const rawStatus = String(body.status || '').toLowerCase();
+        const nextStatus: 'sent' | 'delivered' | 'read' =
+          rawStatus === 'read' ? 'read' : rawStatus === 'delivered' ? 'delivered' : 'sent';
+
+        if (idMsg) {
+          setMessages((prev) => {
+            let changed = false;
+            const updated: Record<string, ChatMessage[]> = {};
+            for (const [cId, msgList] of Object.entries(prev)) {
+              if (msgList.some((m) => m.id === idMsg || m.clientId === idMsg)) {
+                changed = true;
+                updated[cId] = msgList.map((m) =>
+                  m.id === idMsg || m.clientId === idMsg ? { ...m, status: nextStatus } : m
+                );
+              } else {
+                updated[cId] = msgList;
+              }
+            }
+            return changed ? updated : prev;
+          });
+
+          setChats((prev) =>
+            prev.map((c) =>
+              c.lastMessage && (c.lastMessage.id === idMsg || c.lastMessage.clientId === idMsg)
+                ? {
+                    ...c,
+                    lastMessage: { ...c.lastMessage, status: nextStatus },
+                  }
+                : c
+            )
+          );
+        }
+        return;
+      }
+
+      // Check if it is an incoming or outgoing message notification
+      if (
+        type === 'incomingMessageReceived' ||
+        type === 'outgoingMessageReceived' ||
+        type === 'outgoingAPIMessageReceived'
+      ) {
+        const chatId =
+          body.senderData?.chatId ||
+          body.chatId ||
+          body.senderData?.sender ||
+          body.instanceData?.wid;
+
+        const idMessage = body.idMessage || `${type}_${Date.now()}`;
+        const senderName =
+          body.senderData?.senderName ||
+          body.senderData?.senderContactName ||
+          body.senderData?.chatName;
+
         let text = '';
-        if (body.messageData?.typeMessage === 'textMessage') {
-          text = body.messageData.textMessageData?.textMessage || '';
-        } else if (body.messageData?.typeMessage === 'extendedTextMessage') {
-          text = body.messageData.extendedTextMessageData?.text || '';
+        const msgData = body.messageData;
+
+        if (msgData?.typeMessage === 'textMessage') {
+          text = msgData.textMessageData?.textMessage || '';
+        } else if (msgData?.typeMessage === 'extendedTextMessage') {
+          text =
+            msgData.extendedTextMessageData?.text ||
+            msgData.extendedTextMessageData?.description ||
+            '';
+        } else if (msgData?.typeMessage === 'imageMessage') {
+          text = msgData.fileMessageData?.caption || '📷 [Фотография]';
+        } else if (msgData?.typeMessage === 'videoMessage') {
+          text = msgData.fileMessageData?.caption || '🎥 [Видео]';
+        } else if (msgData?.typeMessage === 'audioMessage') {
+          text = '🎵 [Голосовое сообщение]';
+        } else if (msgData?.typeMessage === 'documentMessage') {
+          text = `📄 ${msgData.fileMessageData?.fileName || '[Документ]'}`;
+        } else if (msgData?.typeMessage === 'contactMessage') {
+          text = '👤 [Контакт]';
+        } else if (msgData?.typeMessage === 'locationMessage') {
+          text = '📍 [Геолокация]';
         } else {
-          // For other message formats, render a clean fallback note
-          text = `[${body.messageData?.typeMessage || 'Сообщение'}]`;
+          text = `[${msgData?.typeMessage || 'Сообщение'}]`;
         }
 
-        if (chatId && text) {
+        if (chatId) {
+          const isIncoming = type === 'incomingMessageReceived';
+          const isAudio = msgData?.typeMessage === 'audioMessage';
           const incomingMessage: ChatMessage = {
             id: idMessage,
             chatId,
-            text,
+            text: isAudio ? 'Голосовое сообщение' : text || '[Сообщение]',
             timestamp: (body.timestamp || Math.floor(Date.now() / 1000)) * 1000,
-            direction: 'incoming',
+            direction: isIncoming ? 'incoming' : 'outgoing',
             senderName,
             status: 'delivered',
+            type: isAudio ? 'audio' : 'text',
+            downloadUrl: (msgData?.fileMessageData?.downloadUrl as string) || undefined,
+            isUnread: isIncoming,
           };
           appendMessage(chatId, incomingMessage, senderName);
         }
@@ -189,6 +317,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     },
     [appendMessage]
   );
+
+  const handleNotificationRef = useRef(handleIncomingNotification);
+  useEffect(() => {
+    handleNotificationRef.current = handleIncomingNotification;
+  }, [handleIncomingNotification]);
 
   // Polling loop for ReceiveNotification -> DeleteNotification
   useEffect(() => {
@@ -206,6 +339,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const pollCycle = async () => {
       setIsPolling(true);
 
+      // Auto-enable incomingWebhook on GREEN-API instance if needed
+      try {
+        await client.ensureIncomingWebhook(controller.signal);
+      } catch (err) {
+        console.warn('Webhook auto-configuration warning:', err);
+      }
+
       while (isRunning && isMountedRef.current && !controller.signal.aborted) {
         try {
           // 1. Receive notification from queue (timeout: 5 seconds)
@@ -213,7 +353,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           if (notification && notification.receiptId) {
             // 2. Handle the notification payload
-            handleIncomingNotification(notification);
+            handleNotificationRef.current(notification);
 
             // 3. Delete notification from queue to confirm receipt
             await client.deleteNotification(notification.receiptId, controller.signal);
@@ -246,57 +386,194 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isMountedRef.current = false;
       controller.abort();
     };
-  }, [client, handleIncomingNotification]);
+  }, [client]);
 
   // Fetch available chats from GREEN-API instance
-  const syncChats = useCallback(async () => {
-    if (!client) return;
-    setIsSyncingChats(true);
-    try {
-      const remoteChats = await client.getChats();
-      if (Array.isArray(remoteChats) && remoteChats.length > 0) {
-        setChats((prev) => {
-          const map = new Map<string, ChatSummary>();
-          // Preserve local chats with their existing message history
-          prev.forEach((c) => map.set(c.chatId, c));
+  const syncChats = useCallback(
+    async (forceFresh: boolean = false) => {
+      if (!client) return;
+      setIsSyncingChats(true);
+      try {
+        const remoteChats = await client.getChats();
+        if (Array.isArray(remoteChats)) {
+          setChats((prev) => {
+            const map = new Map<string, ChatSummary>();
 
-          // Merge or add remote chats from GREEN-API
-          remoteChats.forEach((rc) => {
-            if (!rc.id || rc.id.startsWith('0@')) return;
-            const existing = map.get(rc.id);
-            const displayName =
-              rc.name && rc.name.trim() ? rc.name.trim() : GreenApiClient.formatChatDisplay(rc.id);
-
-            if (existing) {
-              if (rc.name && rc.name !== rc.id) {
-                map.set(rc.id, { ...existing, name: displayName });
-              }
-            } else {
-              map.set(rc.id, {
-                chatId: rc.id,
-                name: displayName,
-                unreadCount: rc.unreadCount || 0,
-                updatedAt: Date.now(),
-              });
+            // If not forceFresh, preserve existing local chats and messages
+            if (!forceFresh) {
+              prev.forEach((c) => map.set(c.chatId, c));
             }
-          });
 
-          return Array.from(map.values());
-        });
+            // Populate remote chats from GREEN-API
+            remoteChats.forEach((rc) => {
+              if (!rc.id || rc.id.startsWith('0@')) return;
+              const existing = map.get(rc.id);
+              const displayName =
+                rc.name && rc.name.trim() ? rc.name.trim() : GreenApiClient.formatChatDisplay(rc.id);
+
+              const isActive = activeChatIdRef.current === rc.id;
+
+              if (existing) {
+                if (rc.name && rc.name !== rc.id) {
+                  map.set(rc.id, {
+                    ...existing,
+                    name: displayName,
+                    unreadCount: isActive ? 0 : existing.unreadCount,
+                  });
+                } else if (isActive && existing.unreadCount > 0) {
+                  map.set(rc.id, { ...existing, unreadCount: 0 });
+                }
+              } else {
+                map.set(rc.id, {
+                  chatId: rc.id,
+                  name: displayName,
+                  unreadCount: 0,
+                  updatedAt: Date.now(),
+                });
+              }
+            });
+
+            const updated = Array.from(map.values());
+            if (credentials?.idInstance) {
+              try {
+                localStorage.setItem(
+                  `${CHATS_STORAGE_KEY}_${credentials.idInstance}`,
+                  JSON.stringify(updated)
+                );
+              } catch {
+                // Storage quota error
+              }
+            }
+            return updated;
+          });
+        }
+      } catch (err: unknown) {
+        console.warn('Failed to load remote chats:', err);
+      } finally {
+        setIsSyncingChats(false);
       }
-    } catch (err: unknown) {
-      console.warn('Failed to load remote chats:', err);
-    } finally {
-      setIsSyncingChats(false);
-    }
-  }, [client]);
+    },
+    [client, credentials?.idInstance]
+  );
 
   // Automatically pull chats when connected
   useEffect(() => {
     if (client) {
-      syncChats();
+      syncChats(true);
     }
   }, [client, syncChats]);
+
+  // Load message history from GREEN-API for active chat
+  const loadChatHistory = useCallback(
+    async (chatId: string) => {
+      if (!client || !chatId) return;
+      try {
+        const rawHistory = await client.getChatHistory(chatId, 50);
+        if (Array.isArray(rawHistory) && rawHistory.length > 0) {
+          const mapped: ChatMessage[] = rawHistory.map((m) => {
+            const isIncoming = m.type === 'incoming';
+            const isAudio = m.typeMessage === 'audioMessage';
+            const text =
+              m.textMessage ||
+              m.extendedTextMessage?.text ||
+              m.caption ||
+              (isAudio ? 'Голосовое сообщение' : `[${m.typeMessage || 'Сообщение'}]`);
+
+            const ts = m.timestamp > 10000000000 ? m.timestamp : m.timestamp * 1000;
+
+            return {
+              id: m.idMessage || `hist_${m.timestamp}`,
+              chatId,
+              text,
+              timestamp: ts,
+              direction: isIncoming ? 'incoming' : 'outgoing',
+              senderName: m.senderName || m.senderContactName,
+              status: 'delivered' as const,
+              type: isAudio ? ('audio' as const) : ('text' as const),
+              downloadUrl: (m.downloadUrl as string) || undefined,
+            };
+          });
+
+          // Sort ascending (oldest first, newest last)
+          mapped.sort((a, b) => a.timestamp - b.timestamp);
+
+          setMessages((prev) => {
+            const existing = prev[chatId] || [];
+            const existingIds = new Set(existing.map((m) => m.id));
+            const merged = [...existing];
+
+            mapped.forEach((m) => {
+              if (!existingIds.has(m.id)) {
+                merged.push(m);
+              }
+            });
+
+            merged.sort((a, b) => a.timestamp - b.timestamp);
+            return {
+              ...prev,
+              [chatId]: merged,
+            };
+          });
+
+          const latest = mapped[mapped.length - 1];
+          if (latest) {
+            setChats((prev) =>
+              prev.map((c) =>
+                c.chatId === chatId
+                  ? {
+                      ...c,
+                      lastMessage: latest,
+                      updatedAt: Math.max(c.updatedAt, latest.timestamp),
+                    }
+                  : c
+              )
+            );
+          }
+        }
+      } catch (err) {
+        console.warn(`Failed to load chat history for ${chatId}:`, err);
+      }
+    },
+    [client]
+  );
+
+  // Fetch contact information (name, avatar) from GREEN-API
+  const fetchContactName = useCallback(
+    async (chatId: string) => {
+      if (!client || !chatId) return;
+      try {
+        const info = await client.getContactInfo(chatId);
+        const resolvedName = (info?.contactName || info?.name || '').trim();
+        const lastSeen = info?.lastSeen !== undefined ? info.lastSeen : null;
+        const avatar = info?.avatar || null;
+
+        setChats((prev) =>
+          prev.map((c) => {
+            if (c.chatId === chatId) {
+              return {
+                ...c,
+                name: resolvedName && resolvedName !== chatId ? resolvedName : c.name,
+                lastSeen: lastSeen !== undefined ? lastSeen : c.lastSeen,
+                avatarUrl: avatar || c.avatarUrl,
+              };
+            }
+            return c;
+          })
+        );
+      } catch {
+        // Ignore network errors
+      }
+    },
+    [client]
+  );
+
+  // Automatically load history & contact name when active chat changes
+  useEffect(() => {
+    if (activeChatId && client) {
+      loadChatHistory(activeChatId);
+      fetchContactName(activeChatId);
+    }
+  }, [activeChatId, client, loadChatHistory, fetchContactName]);
 
   // Create or select chat
   const createChat = useCallback(
@@ -318,18 +595,45 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       setActiveChatId(normalizedId);
+      loadChatHistory(normalizedId);
+      fetchContactName(normalizedId);
       return normalizedId;
     },
-    []
+    [loadChatHistory, fetchContactName]
   );
 
   // Select chat & reset unread counter
-  const selectChat = useCallback((chatId: string) => {
-    setActiveChatId(chatId);
-    setChats((prev) =>
-      prev.map((c) => (c.chatId === chatId ? { ...c, unreadCount: 0 } : c))
-    );
-  }, []);
+  // Select chat & reset unread counter
+  const selectChat = useCallback(
+    (chatId: string) => {
+      const prevActiveId = activeChatIdRef.current;
+      if (prevActiveId && prevActiveId !== chatId) {
+        setMessages((mPrev) => {
+          const list = mPrev[prevActiveId] || [];
+          if (!list.some((m) => m.isUnread)) return mPrev;
+          return {
+            ...mPrev,
+            [prevActiveId]: list.map((m) => (m.isUnread ? { ...m, isUnread: false } : m)),
+          };
+        });
+      }
+
+      setActiveChatId(chatId);
+
+      setChats((prev) =>
+        prev.map((c) => (c.chatId === chatId ? { ...c, unreadCount: 0 } : c))
+      );
+
+      // Call GREEN-API readChat to mark messages as read on WhatsApp server
+      if (client) {
+        client.readChat(chatId).catch(() => {});
+      }
+
+      loadChatHistory(chatId);
+      fetchContactName(chatId);
+    },
+    [client, loadChatHistory, fetchContactName]
+  );
 
   // Send message
   const sendMessage = useCallback(
@@ -344,6 +648,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const optimisticMessage: ChatMessage = {
         id: tempId,
+        clientId: tempId,
         chatId: activeChatId,
         text: trimmedText,
         timestamp: now,
@@ -356,24 +661,57 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsSending(true);
       setLastSendError(null);
 
+      // Mark all incoming messages in activeChat as read upon sending reply
+      setMessages((prev) => {
+        const chatMsgs = prev[activeChatId] || [];
+        const hasUnread = chatMsgs.some((m) => m.isUnread);
+        if (!hasUnread) return prev;
+        return {
+          ...prev,
+          [activeChatId]: chatMsgs.map((m) => (m.isUnread ? { ...m, isUnread: false } : m)),
+        };
+      });
+
+      setChats((prev) =>
+        prev.map((c) =>
+          c.chatId === activeChatId && c.unreadCount > 0 ? { ...c, unreadCount: 0 } : c
+        )
+      );
+
       try {
         const response = await client.sendMessage({
           chatId: activeChatId,
           message: trimmedText,
         });
 
-        // Update status to sent with real idMessage
+        // Update status to sent with real idMessage while keeping clientId stable
         setMessages((prev) => {
           const chatMsgs = prev[activeChatId] || [];
           return {
             ...prev,
             [activeChatId]: chatMsgs.map((m) =>
               m.id === tempId
-                ? { ...m, id: response.idMessage || tempId, status: 'sent' }
+                ? { ...m, id: response.idMessage || tempId, clientId: m.clientId || tempId, status: 'sent' }
                 : m
             ),
           };
         });
+
+        // Immediately update status in sidebar chats so clock changes to single checkmark
+        setChats((prev) =>
+          prev.map((c) =>
+            c.chatId === activeChatId && c.lastMessage && (c.lastMessage.id === tempId || c.lastMessage.clientId === tempId)
+              ? {
+                  ...c,
+                  lastMessage: {
+                    ...c.lastMessage,
+                    id: response.idMessage || tempId,
+                    status: 'sent',
+                  },
+                }
+              : c
+          )
+        );
 
         return true;
       } catch (err: unknown) {
@@ -387,6 +725,19 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ),
           };
         });
+        setChats((prev) =>
+          prev.map((c) =>
+            c.chatId === activeChatId && c.lastMessage && (c.lastMessage.id === tempId || c.lastMessage.clientId === tempId)
+              ? {
+                  ...c,
+                  lastMessage: {
+                    ...c.lastMessage,
+                    status: 'error',
+                  },
+                }
+              : c
+          )
+        );
         const msg = err instanceof Error ? err.message : 'Не удалось отправить сообщение';
         setLastSendError(msg);
         return false;
@@ -395,6 +746,72 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     },
     [client, activeChatId, appendMessage]
+  );
+
+  const closeChat = useCallback(() => {
+    if (activeChatIdRef.current) {
+      const cId = activeChatIdRef.current;
+      setMessages((prev) => {
+        const list = prev[cId] || [];
+        if (!list.some((m) => m.isUnread)) return prev;
+        return {
+          ...prev,
+          [cId]: list.map((m) => (m.isUnread ? { ...m, isUnread: false } : m)),
+        };
+      });
+    }
+    setActiveChatId(null);
+  }, []);
+
+  const toggleChatUnread = useCallback((chatId: string) => {
+    setChats((prev) =>
+      prev.map((c) => {
+        if (c.chatId === chatId) {
+          const nextCount = c.unreadCount > 0 ? 0 : 1;
+          setMessages((mPrev) => {
+            const list = mPrev[chatId] || [];
+            if (nextCount > 0) {
+              const incoming = list.filter((m) => m.direction === 'incoming');
+              const lastIncoming = incoming[incoming.length - 1];
+              if (!lastIncoming) return mPrev;
+              return {
+                ...mPrev,
+                [chatId]: list.map((m) =>
+                  m.id === lastIncoming.id ? { ...m, isUnread: true } : m
+                ),
+              };
+            } else {
+              return {
+                ...mPrev,
+                [chatId]: list.map((m) => (m.isUnread ? { ...m, isUnread: false } : m)),
+              };
+            }
+          });
+          return { ...c, unreadCount: nextCount };
+        }
+        return c;
+      })
+    );
+  }, []);
+
+  const markChatAsRead = useCallback(
+    (chatId: string) => {
+      setChats((prev) =>
+        prev.map((c) => (c.chatId === chatId && c.unreadCount > 0 ? { ...c, unreadCount: 0 } : c))
+      );
+      setMessages((prev) => {
+        const list = prev[chatId] || [];
+        if (!list.some((m) => m.isUnread)) return prev;
+        return {
+          ...prev,
+          [chatId]: list.map((m) => (m.isUnread ? { ...m, isUnread: false } : m)),
+        };
+      });
+      if (client) {
+        client.readChat(chatId).catch(() => {});
+      }
+    },
+    [client]
   );
 
   const clearSendError = useCallback(() => {
@@ -423,6 +840,23 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
   }, []);
 
+  const clearAllChats = useCallback(() => {
+    setChats([]);
+    setMessages({});
+    setActiveChatId(null);
+    if (credentials?.idInstance) {
+      try {
+        localStorage.removeItem(`${CHATS_STORAGE_KEY}_${credentials.idInstance}`);
+        localStorage.removeItem(`${MESSAGES_STORAGE_KEY}_${credentials.idInstance}`);
+        // Clean legacy generic keys if any exist
+        localStorage.removeItem(CHATS_STORAGE_KEY);
+        localStorage.removeItem(MESSAGES_STORAGE_KEY);
+      } catch {
+        // Storage error
+      }
+    }
+  }, [credentials?.idInstance]);
+
   const activeChat = chats.find((c) => c.chatId === activeChatId) || null;
   const activeMessages = activeChatId ? messages[activeChatId] || [] : [];
 
@@ -440,11 +874,16 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         lastSendError,
         clearSendError,
         syncChats,
+        clearAllChats,
         selectChat,
+        closeChat,
+        toggleChatUnread,
+        markChatAsRead,
         createChat,
         sendMessage,
         deleteChat,
         clearMessages,
+        loadChatHistory,
       }}
     >
       {children}

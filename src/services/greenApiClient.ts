@@ -6,6 +6,7 @@ import {
   ReceiveNotificationResponse,
   DeleteNotificationResponse,
   GreenApiRawChat,
+  GreenApiRawHistoryMessage,
 } from '@/types/greenApi';
 
 export class GreenApiClient {
@@ -99,12 +100,176 @@ export class GreenApiClient {
   }
 
   /**
+   * Get instance settings
+   * Method: getSettings
+   */
+  async getSettings(signal?: AbortSignal): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>('getSettings', 'GET', undefined, '', undefined, signal);
+  }
+
+  /**
+   * Set instance settings (e.g. enable incomingWebhook)
+   * Method: setSettings
+   */
+  async setSettings(
+    settings: Record<string, unknown>,
+    signal?: AbortSignal
+  ): Promise<{ saveSettings: boolean }> {
+    return this.request<{ saveSettings: boolean }>('setSettings', 'POST', settings, '', undefined, signal);
+  }
+
+  /**
+   * Ensure incomingWebhook & outgoingMessageStatusWebhook are enabled
+   */
+  async ensureIncomingWebhook(signal?: AbortSignal): Promise<void> {
+    try {
+      const current = await this.getSettings(signal);
+      const updates: Record<string, string> = {};
+      if (current && current.incomingWebhook !== 'yes') {
+        updates.incomingWebhook = 'yes';
+      }
+      if (current && current.outgoingMessageStatusWebhook !== 'yes') {
+        updates.outgoingMessageStatusWebhook = 'yes';
+      }
+      if (current && current.outgoingAPIMessageWebhook !== 'yes') {
+        updates.outgoingAPIMessageWebhook = 'yes';
+      }
+      if (Object.keys(updates).length > 0) {
+        await this.setSettings(updates, signal);
+      }
+    } catch (err) {
+      console.warn('Could not automatically verify webhook settings:', err);
+    }
+  }
+
+  /**
    * Get all active chats from the connected WhatsApp account
    * Method: getChats
    */
   async getChats(signal?: AbortSignal): Promise<GreenApiRawChat[]> {
     const chats = await this.request<GreenApiRawChat[]>('getChats', 'GET', undefined, '', undefined, signal);
     return Array.isArray(chats) ? chats : [];
+  }
+
+  /**
+   * Get contact information (name, contactName, avatar)
+   * Method: getContactInfo
+   */
+  async getContactInfo(
+    chatId: string,
+    signal?: AbortSignal
+  ): Promise<{
+    name?: string;
+    contactName?: string;
+    avatar?: string;
+    lastSeen?: string | null;
+    isBusiness?: boolean;
+    description?: string;
+    category?: string;
+  } | null> {
+    const formattedChatId = GreenApiClient.normalizeChatId(chatId);
+    if (!formattedChatId) return null;
+
+    try {
+      return await this.request<{
+        name?: string;
+        contactName?: string;
+        avatar?: string;
+        lastSeen?: string | null;
+        isBusiness?: boolean;
+        description?: string;
+        category?: string;
+      }>(
+        'getContactInfo',
+        'POST',
+        { chatId: formattedChatId },
+        '',
+        undefined,
+        signal
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Get chat message history for a specific chat
+   * Method: getChatHistory
+   */
+  async getChatHistory(
+    chatId: string,
+    count: number = 50,
+    signal?: AbortSignal
+  ): Promise<GreenApiRawHistoryMessage[]> {
+    const formattedChatId = GreenApiClient.normalizeChatId(chatId);
+    if (!formattedChatId) return [];
+
+    const messages = await this.request<GreenApiRawHistoryMessage[]>(
+      'getChatHistory',
+      'POST',
+      { chatId: formattedChatId, count },
+      '',
+      undefined,
+      signal
+    );
+    return Array.isArray(messages) ? messages : [];
+  }
+
+  /**
+   * Get direct download URL for media/audio files
+   * Method: downloadFile
+   */
+  async downloadFile(
+    chatId: string,
+    idMessage: string,
+    signal?: AbortSignal
+  ): Promise<{ downloadUrl: string } | null> {
+    const formattedChatId = GreenApiClient.normalizeChatId(chatId);
+    if (!formattedChatId || !idMessage) return null;
+
+    try {
+      return await this.request<{ downloadUrl: string }>(
+        'downloadFile',
+        'POST',
+        { chatId: formattedChatId, idMessage },
+        '',
+        undefined,
+        signal
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Mark all messages in a chat as read
+   * Method: readChat
+   */
+  async readChat(
+    chatId: string,
+    idMessage?: string,
+    signal?: AbortSignal
+  ): Promise<boolean> {
+    const formattedChatId = GreenApiClient.normalizeChatId(chatId);
+    if (!formattedChatId) return false;
+
+    try {
+      const payload: { chatId: string; idMessage?: string } = { chatId: formattedChatId };
+      if (idMessage) {
+        payload.idMessage = idMessage;
+      }
+      await this.request<{ setRead: boolean }>(
+        'readChat',
+        'POST',
+        payload,
+        '',
+        undefined,
+        signal
+      );
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**

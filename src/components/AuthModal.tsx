@@ -2,7 +2,15 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { KeyRound, ShieldCheck, ExternalLink, AlertCircle, Loader2 } from 'lucide-react';
+import { useChat } from '@/context/ChatContext';
+import {
+  KeyMinimalisticLinearIcon,
+  ShieldCheckLinearIcon,
+  ArrowRightUpLinearIcon,
+  DangerCircleLinearIcon,
+  RefreshCircleLinearIcon,
+  TrashBinTrashLinearIcon,
+} from '@solar-icons/react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -11,6 +19,7 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const { credentials, login, isLoading, error } = useAuth();
+  const { clearAllChats } = useChat();
 
   const [idInstance, setIdInstance] = useState(credentials?.idInstance || '');
   const [apiTokenInstance, setApiTokenInstance] = useState(credentials?.apiTokenInstance || '');
@@ -48,47 +57,47 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div style={styles.overlay}>
-      <div style={styles.modalCard} className="glass-effect">
-        <div style={styles.header}>
-          <div style={styles.iconCircle}>
-            <KeyRound size={26} color="var(--accent-color)" />
+    <div className="fixed inset-0 bg-black/45 flex items-center justify-center z-[9999] p-4">
+      <div className="bg-white dark:bg-[#1c1c1e] border border-[#ebebed] dark:border-[#2c2c2e] rounded-2xl w-full max-w-[440px] p-8 flex flex-col gap-5 shadow-2xl">
+        <div className="flex flex-col items-center text-center gap-2">
+          <div className="w-14 h-14 rounded-full bg-[#007aff]/10 flex items-center justify-center mb-1 text-[#007aff]">
+            <KeyMinimalisticLinearIcon size={26} color="#007aff" />
           </div>
-          <h2 style={styles.title}>Подключение GREEN-API</h2>
-          <p style={styles.subtitle}>
+          <h2 className="text-xl font-semibold tracking-tight text-black dark:text-white">Подключение GREEN-API</h2>
+          <p className="text-[13px] text-[#3c3c43] dark:text-[#ebebf5] leading-snug">
             Введите параметры инстанса из вашего личного кабинета GREEN-API для доступа к чату.
           </p>
         </div>
 
         {(error || localError) && (
-          <div style={styles.errorBox}>
-            <AlertCircle size={18} color="var(--accent-red)" style={{ flexShrink: 0 }} />
-            <span style={styles.errorText}>{localError || error}</span>
+          <div className="bg-[#ff3b30]/10 border border-[#ff3b30]/20 rounded-lg p-2.5 flex items-center gap-2.5">
+            <DangerCircleLinearIcon size={18} color="#ff3b30" className="flex-shrink-0" />
+            <span className="text-[#ff3b30] text-[13px] leading-tight">{localError || error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>idInstance</label>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-[#3c3c43] dark:text-[#ebebf5] uppercase tracking-wider">idInstance</label>
             <input
               type="text"
               placeholder="Например: 110182..."
               value={idInstance}
               onChange={(e) => setIdInstance(e.target.value)}
-              style={styles.input}
+              className="bg-[#f0f0f2] dark:bg-[#2c2c2e] text-black dark:text-white rounded-xl px-3.5 py-3 text-sm outline-none border border-transparent focus:border-[#007aff] transition-colors"
               disabled={isLoading}
               autoFocus
             />
           </div>
 
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>apiTokenInstance</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-[#3c3c43] dark:text-[#ebebf5] uppercase tracking-wider">apiTokenInstance</label>
             <input
               type="password"
               placeholder="Токен инстанса"
               value={apiTokenInstance}
               onChange={(e) => setApiTokenInstance(e.target.value)}
-              style={styles.input}
+              className="bg-[#f0f0f2] dark:bg-[#2c2c2e] text-black dark:text-white rounded-xl px-3.5 py-3 text-sm outline-none border border-transparent focus:border-[#007aff] transition-colors"
               disabled={isLoading}
             />
           </div>
@@ -97,43 +106,40 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <button
               type="button"
               onClick={() => setShowAdvanced(!showAdvanced)}
-              style={styles.advancedToggle}
+              className="text-xs text-[#007aff] hover:underline text-left py-1 cursor-pointer"
             >
               {showAdvanced ? '− Скрыть доп. настройки' : '+ Дополнительные настройки (API URL)'}
             </button>
 
             {showAdvanced && (
-              <div style={{ ...styles.inputGroup, marginTop: '8px' }}>
-                <label style={styles.label}>Базовый URL API</label>
+              <div className="flex flex-col gap-1.5 mt-2">
+                <label className="text-xs font-medium text-[#3c3c43] dark:text-[#ebebf5] uppercase tracking-wider">Базовый URL API</label>
                 <input
                   type="text"
                   placeholder="https://api.green-api.com"
                   value={apiUrl}
                   onChange={(e) => setApiUrl(e.target.value)}
-                  style={styles.input}
+                  className="bg-[#f0f0f2] dark:bg-[#2c2c2e] text-black dark:text-white rounded-xl px-3.5 py-3 text-sm outline-none border border-transparent focus:border-[#007aff] transition-colors"
                   disabled={isLoading}
                 />
               </div>
             )}
           </div>
 
-          <div style={styles.actions}>
+          <div className="flex flex-col gap-2.5 mt-2">
             <button
               type="submit"
               disabled={isLoading}
-              style={{
-                ...styles.submitButton,
-                opacity: isLoading ? 0.7 : 1,
-              }}
+              className="bg-[#007aff] hover:bg-[#0062cc] text-white p-3.5 rounded-xl text-[15px] font-semibold flex items-center justify-center transition-all disabled:opacity-70 shadow-sm cursor-pointer"
             >
               {isLoading ? (
                 <>
-                  <Loader2 size={18} className="spin-animation" style={{ marginRight: 8 }} />
+                  <RefreshCircleLinearIcon size={18} className="animate-spin mr-2" />
                   Авторизация...
                 </>
               ) : (
                 <>
-                  <ShieldCheck size={18} style={{ marginRight: 8 }} />
+                  <ShieldCheckLinearIcon size={18} className="mr-2" />
                   Войти в чат
                 </>
               )}
@@ -144,164 +150,42 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 type="button"
                 onClick={onClose}
                 disabled={isLoading}
-                style={styles.cancelButton}
+                className="text-[#3c3c43] dark:text-[#ebebf5] text-sm p-2 text-center hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors cursor-pointer"
               >
                 Отмена
+              </button>
+            )}
+
+            {credentials && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Очистить локальный кэш чатов для этого инстанса?')) {
+                    clearAllChats();
+                    if (onClose) onClose();
+                  }
+                }}
+                disabled={isLoading}
+                className="text-[#ff3b30] bg-[#ff3b30]/[0.08] hover:bg-[#ff3b30]/15 border border-[#ff3b30]/20 rounded-xl text-[13px] font-medium p-2.5 flex items-center justify-center cursor-pointer mt-1 transition-colors"
+              >
+                <TrashBinTrashLinearIcon size={14} className="mr-1.5" />
+                Сбросить кэш чатов
               </button>
             )}
           </div>
         </form>
 
-        <div style={styles.footer}>
+        <div className="border-t border-[#ebebed] dark:border-[#2c2c2e] pt-4 flex justify-center">
           <a
             href="https://console.green-api.com/"
             target="_blank"
             rel="noopener noreferrer"
-            style={styles.cabinetLink}
+            className="inline-flex items-center text-xs text-[#3c3c43] dark:text-[#ebebf5] hover:text-black dark:hover:text-white transition-colors"
           >
-            Личный кабинет GREEN-API <ExternalLink size={13} style={{ marginLeft: 4 }} />
+            Личный кабинет GREEN-API <ArrowRightUpLinearIcon size={13} className="ml-1" />
           </a>
         </div>
       </div>
     </div>
   );
-};
-
-const styles: Record<string, React.CSSProperties> = {
-  overlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 9999,
-    padding: '16px',
-  },
-  modalCard: {
-    backgroundColor: 'var(--bg-surface-elevated)',
-    border: '1px solid var(--border-subtle)',
-    borderRadius: 'var(--radius-lg)',
-    boxShadow: 'var(--shadow-lg)',
-    width: '100%',
-    maxWidth: '440px',
-    padding: '32px 28px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '20px',
-  },
-  header: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    textAlign: 'center',
-    gap: '8px',
-  },
-  iconCircle: {
-    width: '56px',
-    height: '56px',
-    borderRadius: '50%',
-    backgroundColor: 'rgba(0, 113, 227, 0.1)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: '4px',
-  },
-  title: {
-    fontSize: '20px',
-    fontWeight: 600,
-    letterSpacing: '-0.02em',
-    color: 'var(--text-primary)',
-  },
-  subtitle: {
-    fontSize: '13px',
-    color: 'var(--text-secondary)',
-    lineHeight: '1.4',
-  },
-  errorBox: {
-    backgroundColor: 'rgba(255, 59, 48, 0.1)',
-    border: '1px solid rgba(255, 59, 48, 0.2)',
-    borderRadius: 'var(--radius-sm)',
-    padding: '10px 12px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-  },
-  errorText: {
-    color: 'var(--accent-red)',
-    fontSize: '13px',
-    lineHeight: '1.3',
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
-  },
-  inputGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
-  },
-  label: {
-    fontSize: '12px',
-    fontWeight: 500,
-    color: 'var(--text-secondary)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.04em',
-  },
-  input: {
-    backgroundColor: 'var(--bg-input)',
-    color: 'var(--text-primary)',
-    borderRadius: 'var(--radius-md)',
-    padding: '12px 14px',
-    fontSize: '14px',
-    transition: 'all var(--transition-fast)',
-    border: '1px solid transparent',
-  },
-  advancedToggle: {
-    fontSize: '12px',
-    color: 'var(--accent-color)',
-    textAlign: 'left',
-    padding: '4px 0',
-  },
-  actions: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-    marginTop: '8px',
-  },
-  submitButton: {
-    backgroundColor: 'var(--accent-color)',
-    color: '#ffffff',
-    padding: '13px',
-    borderRadius: 'var(--radius-md)',
-    fontSize: '15px',
-    fontWeight: 600,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: 'var(--shadow-sm)',
-  },
-  cancelButton: {
-    color: 'var(--text-secondary)',
-    fontSize: '14px',
-    padding: '8px',
-    textAlign: 'center',
-  },
-  footer: {
-    borderTop: '1px solid var(--border-subtle)',
-    paddingTop: '16px',
-    display: 'flex',
-    justifyContent: 'center',
-  },
-  cabinetLink: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    fontSize: '12px',
-    color: 'var(--text-secondary)',
-    textDecoration: 'none',
-  },
 };

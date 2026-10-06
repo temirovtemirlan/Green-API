@@ -4,40 +4,34 @@ import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useChat } from '@/context/ChatContext';
 import {
-  SquarePen,
-  Search,
-  Settings,
-  LogOut,
-  Radio,
-  Check,
-  CheckCheck,
-  Clock,
-  ChevronRight,
-  Mic,
-  AlertTriangle,
-  User,
-  RefreshCw,
-} from 'lucide-react';
+  MagnifierLinearIcon,
+  Logout2LinearIcon,
+  CheckLinearIcon,
+  CheckReadLinearIcon,
+  ClockCircleLinearIcon,
+  DangerTriangleLinearIcon,
+} from '@solar-icons/react';
 import { GreenApiClient } from '@/services/greenApiClient';
 
 interface SidebarProps {
-  onOpenSettings: () => void;
+  onOpenSettings?: () => void;
   onOpenNewChat: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenNewChat }) => {
-  const { credentials, logout, instanceState } = useAuth();
-  const {
-    chats,
-    activeChatId,
-    selectChat,
-    isPolling,
-    pollingError,
-    syncChats,
-    isSyncingChats,
-  } = useChat();
-
+export const Sidebar: React.FC<SidebarProps> = () => {
+  const { instanceState, logout } = useAuth();
+  const { chats, activeChatId, selectChat, toggleChatUnread, clearAllChats } = useChat();
   const [searchQuery, setSearchQuery] = useState('');
+
+  const handleLogout = () => {
+    try {
+      localStorage.clear();
+    } catch {
+      // Storage error
+    }
+    clearAllChats();
+    logout();
+  };
 
   const filteredChats = chats.filter((c) => {
     if (!searchQuery.trim()) return true;
@@ -59,77 +53,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenNewChat 
     return date.toLocaleDateString([], { day: 'numeric', month: 'short' });
   };
 
-  // Generate distinct pastel gradient for avatars based on chatId
-  const getAvatarGradient = (chatId: string) => {
-    const gradients = [
-      'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)',
-      'linear-gradient(135deg, #4E65FF 0%, #92EFFD 100%)',
-      'linear-gradient(135deg, #654ea3 0%, #eaafc8 100%)',
-      'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
-      'linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%)',
-      'linear-gradient(135deg, #007aff 0%, #00c6ff 100%)',
-    ];
-    let sum = 0;
-    for (let i = 0; i < chatId.length; i++) {
-      sum += chatId.charCodeAt(i);
-    }
-    return gradients[sum % gradients.length];
-  };
-
-  const getInitials = (chatId: string) => {
-    const clean = chatId.replace(/@.*$/, '');
-    if (clean.length >= 2) {
-      return clean.slice(-2);
-    }
-    return '💬';
-  };
-
   return (
-    <aside style={styles.sidebar}>
-      {/* Top Bar with 'Чаты' and Action Icons */}
-      <div style={styles.header}>
-        <h1 style={styles.headerTitle}>Чаты</h1>
-        <div style={styles.headerActions}>
+    <aside className="w-[340px] h-full bg-white dark:bg-[#1c1c1e] border-r border-[#ebebed] dark:border-[#2c2c2e] flex flex-col flex-shrink-0 z-10 select-none">
+      {/* Top Bar with 'Чаты' and Exit Icon */}
+      <div className="h-16 px-5 flex items-center justify-between">
+        <h1 className="text-[22px] font-bold tracking-tight text-black dark:text-white">Чаты</h1>
+        <div className="flex items-center gap-2.5">
           <button
-            onClick={syncChats}
-            disabled={isSyncingChats}
-            style={styles.actionBtn}
-            title="Загрузить чаты из WhatsApp"
+            onClick={handleLogout}
+            className="w-[34px] h-[34px] rounded-full flex items-center justify-center bg-[#f2f2f7] dark:bg-[#2c2c2e] hover:bg-[#ff3b30]/10 hover:text-[#ff3b30] text-[#8e8e93] transition-colors cursor-pointer"
+            title="Выйти из аккаунта и очистить данные"
           >
-            <RefreshCw
-              size={17}
-              color="var(--accent-color)"
-              className={isSyncingChats ? 'spin-animation' : ''}
-            />
-          </button>
-          <button
-            onClick={onOpenNewChat}
-            style={styles.actionBtn}
-            title="Новый диалог (ввести номер)"
-          >
-            <SquarePen size={20} color="var(--accent-color)" />
-          </button>
-          <button
-            onClick={onOpenSettings}
-            style={styles.actionBtn}
-            title="Настройки инстанса"
-          >
-            <Settings size={19} color="var(--text-tertiary)" />
+            <Logout2LinearIcon size={19} />
           </button>
         </div>
       </div>
 
       {/* QR Pairing Warning if notAuthorized */}
       {instanceState?.stateInstance === 'notAuthorized' && (
-        <div style={styles.notAuthorizedNotice}>
-          <AlertTriangle size={14} color="var(--accent-amber)" style={{ flexShrink: 0 }} />
-          <span style={styles.notAuthText}>
+        <div className="bg-[#ff9500]/12 border-y border-[#ff9500]/20 px-4 py-2 flex items-center gap-2">
+          <DangerTriangleLinearIcon size={14} color="#ff9500" className="flex-shrink-0" />
+          <span className="text-xs text-[#ff9500] leading-snug">
             Инстанс не авторизован.{' '}
             <a
               href="https://console.green-api.com"
               target="_blank"
               rel="noopener noreferrer"
-              style={styles.notAuthLink}
+              className="text-[#ff9500] font-semibold underline"
             >
               Отсканируйте QR ↗
             </a>
@@ -138,27 +88,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenNewChat 
       )}
 
       {/* Search Input Bar */}
-      <div style={styles.searchContainer}>
-        <div style={styles.searchWrap}>
-          <Search size={15} color="var(--text-tertiary)" style={{ marginLeft: 10 }} />
+      <div className="px-4 pb-2.5">
+        <div className="flex items-center bg-[#f0f0f2] dark:bg-[#2c2c2e] rounded-[10px] h-9 px-2.5">
+          <MagnifierLinearIcon size={15} color="#8e8e93" className="ml-1" />
           <input
             type="text"
             placeholder="Поиск"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={styles.searchInput}
+            className="flex-1 px-2 text-sm text-black dark:text-white bg-transparent outline-none placeholder:text-[#8e8e93]"
           />
-          <Mic size={15} color="var(--text-tertiary)" style={{ marginRight: 10 }} />
         </div>
       </div>
 
       {/* Chat List */}
-      <div style={styles.chatList}>
+      <div className="flex-1 overflow-y-auto flex flex-col">
         {filteredChats.length === 0 ? (
-          <div style={styles.emptyContainer}>
-            <p style={styles.emptyTitle}>Нет диалогов</p>
-            <p style={styles.emptySubtitle}>
-              Нажмите значок <strong>новый чат</strong> вверху справа, чтобы ввести номер собеседника в MAX или WhatsApp.
+          <div className="py-12 px-6 text-center flex flex-col items-center gap-2">
+            <p className="text-base font-semibold text-[#3c3c43] dark:text-[#ebebf5]">Нет диалогов</p>
+            <p className="text-[13px] text-[#8e8e93] leading-relaxed">
+              Нажмите значок <strong>новый чат</strong>, чтобы ввести номер собеседника в MAX или WhatsApp.
             </p>
           </div>
         ) : (
@@ -166,65 +115,90 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenNewChat 
             const isActive = chat.chatId === activeChatId;
             const lastMsg = chat.lastMessage;
             const hasUnread = chat.unreadCount > 0;
+            const chatDisplayName =
+              chat.name && chat.name !== chat.chatId
+                ? chat.name
+                : GreenApiClient.formatChatDisplay(chat.chatId);
 
             return (
               <div
                 key={chat.chatId}
                 onClick={() => selectChat(chat.chatId)}
-                style={{
-                  ...styles.chatItem,
-                  backgroundColor: isActive ? 'rgba(0, 122, 255, 0.08)' : 'transparent',
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  toggleChatUnread(chat.chatId);
                 }}
+                title={
+                  hasUnread
+                    ? 'Нажмите правой кнопкой мыши, чтобы пометить как прочитанное'
+                    : 'Нажмите правой кнопкой мыши, чтобы пометить как непрочитанное'
+                }
+                className={`flex items-center px-4 py-2.5 cursor-pointer relative transition-colors border-b border-black/[0.03] dark:border-white/[0.03] ${
+                  isActive
+                    ? 'bg-[#007aff]/[0.08]'
+                    : 'hover:bg-black/[0.02] dark:hover:bg-white/[0.02]'
+                }`}
               >
-                {/* Blue dot for unread or active indicator */}
-                <div style={styles.indicatorSlot}>
-                  {hasUnread && <div style={styles.unreadDot} />}
+                {/* 11x11 Blue indicator to the left of profile picture (matching Photo 4) */}
+                <div className="flex items-center justify-center flex-shrink-0 mr-2.5 w-[11px]">
+                  {hasUnread ? (
+                    <div className="w-[11px] h-[11px] rounded-full bg-[#007aff] flex-shrink-0 animate-in fade-in duration-200" />
+                  ) : (
+                    <div className="w-[11px] h-[11px] opacity-0 pointer-events-none flex-shrink-0" />
+                  )}
                 </div>
 
-                {/* Avatar with initials or icon */}
-                <div
-                  style={{
-                    ...styles.avatarCircle,
-                    background: getAvatarGradient(chat.chatId),
-                  }}
-                >
-                  <span style={styles.avatarInitials}>{getInitials(chat.chatId)}</span>
+                {/* User Avatar */}
+                <div className="w-[46px] h-[46px] rounded-full flex items-center justify-center flex-shrink-0 mr-3 overflow-hidden bg-white">
+                  <img
+                    src="/default-avatar.svg"
+                    alt=""
+                    className="w-full h-full object-cover rounded-full block select-none"
+                    draggable={false}
+                  />
                 </div>
 
                 {/* Details */}
-                <div style={styles.chatDetails}>
-                  <div style={styles.topRow}>
+                <div className="flex-1 min-w-0 flex flex-col gap-1">
+                  <div className="flex justify-between items-center">
                     <span
-                      style={{
-                        ...styles.chatName,
-                        fontWeight: isActive ? 700 : 600,
-                        color: isActive ? 'var(--accent-color)' : 'var(--text-primary)',
-                      }}
+                      className={`text-[14.5px] truncate ${
+                        isActive
+                          ? 'font-bold text-[#007aff]'
+                          : hasUnread
+                          ? 'font-bold text-black dark:text-white'
+                          : 'font-semibold text-black dark:text-white'
+                      }`}
                     >
-                      {GreenApiClient.formatChatDisplay(chat.chatId)}
+                      {chatDisplayName}
                     </span>
-                    <div style={styles.timeWrap}>
-                      <span style={styles.chatTime}>
-                        {formatTime(lastMsg?.timestamp || chat.updatedAt)}
-                      </span>
-                      <ChevronRight size={15} color="#c7c7cc" style={{ marginLeft: 2 }} />
-                    </div>
+                    <span
+                      className={`text-[11.5px] flex-shrink-0 ${
+                        hasUnread ? 'text-[#007aff] font-semibold' : 'text-[#8e8e93]'
+                      }`}
+                    >
+                      {formatTime(lastMsg?.timestamp || chat.updatedAt)}
+                    </span>
                   </div>
 
-                  <div style={styles.bottomRow}>
-                    <div style={styles.previewWrap}>
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-1 overflow-hidden">
                       {lastMsg?.direction === 'outgoing' && (
-                        <span style={styles.statusIcon}>
+                        <span className="flex items-center flex-shrink-0">
                           {lastMsg.status === 'sending' ? (
-                            <Clock size={11} color="var(--text-tertiary)" />
+                            <ClockCircleLinearIcon size={11} color="#8e8e93" />
                           ) : lastMsg.status === 'sent' ? (
-                            <Check size={12} color="var(--text-tertiary)" />
+                            <CheckLinearIcon size={12} color="#8e8e93" />
+                          ) : lastMsg.status === 'delivered' ? (
+                            <CheckReadLinearIcon size={12} color="#8e8e93" />
+                          ) : lastMsg.status === 'read' ? (
+                            <CheckReadLinearIcon size={12} color="#007aff" />
                           ) : (
-                            <CheckCheck size={12} color="var(--accent-color)" />
+                            <CheckLinearIcon size={12} color="#8e8e93" />
                           )}
                         </span>
                       )}
-                      <span style={styles.previewText}>
+                      <span className={`text-[13px] truncate ${hasUnread ? 'text-black dark:text-white font-medium' : 'text-[#8e8e93]'}`}>
                         {lastMsg
                           ? (lastMsg.direction === 'outgoing' ? 'Вы: ' : '') + lastMsg.text
                           : 'Нет сообщений'}
@@ -232,7 +206,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenNewChat 
                     </div>
 
                     {hasUnread && (
-                      <span style={styles.unreadBadge}>{chat.unreadCount}</span>
+                      <span className="bg-[#007aff] text-white text-[11px] font-semibold rounded-full min-w-[18px] h-[18px] px-1.5 flex items-center justify-center flex-shrink-0">
+                        {chat.unreadCount}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -241,258 +217,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenSettings, onOpenNewChat 
           })
         )}
       </div>
-
-      {/* Footer with connection status */}
-      <div style={styles.footer}>
-        <div style={styles.queueStatus}>
-          <div
-            className={isPolling ? 'pulsing-dot' : ''}
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              backgroundColor: isPolling
-                ? 'var(--accent-green)'
-                : 'var(--accent-amber)',
-            }}
-          />
-          <span style={styles.queueText}>
-            ID: {credentials?.idInstance} {isPolling ? '• Онлайн' : ''}
-          </span>
-        </div>
-
-        <button onClick={logout} style={styles.logoutBtn} title="Выйти из инстанса">
-          <LogOut size={16} color="var(--accent-red)" />
-        </button>
-      </div>
     </aside>
   );
-};
-
-const styles: Record<string, React.CSSProperties> = {
-  sidebar: {
-    width: '340px',
-    height: '100%',
-    backgroundColor: 'var(--bg-sidebar)',
-    borderRight: '1px solid var(--border-subtle)',
-    display: 'flex',
-    flexDirection: 'column',
-    flexShrink: 0,
-    zIndex: 10,
-  },
-  header: {
-    height: '64px',
-    padding: '0 20px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerTitle: {
-    fontSize: '22px',
-    fontWeight: 700,
-    letterSpacing: '-0.02em',
-    color: 'var(--text-primary)',
-  },
-  headerActions: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-  },
-  actionBtn: {
-    width: '34px',
-    height: '34px',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f2f2f7',
-  },
-  notAuthorizedNotice: {
-    backgroundColor: 'rgba(255, 149, 0, 0.12)',
-    borderTop: '1px solid rgba(255, 149, 0, 0.2)',
-    borderBottom: '1px solid rgba(255, 149, 0, 0.2)',
-    padding: '8px 16px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  notAuthText: {
-    fontSize: '12px',
-    color: 'var(--accent-amber)',
-    lineHeight: '1.3',
-  },
-  notAuthLink: {
-    color: 'var(--accent-amber)',
-    fontWeight: 600,
-    textDecoration: 'underline',
-  },
-  searchContainer: {
-    padding: '0 16px 10px',
-  },
-  searchWrap: {
-    display: 'flex',
-    alignItems: 'center',
-    backgroundColor: 'var(--bg-input)',
-    borderRadius: '10px',
-    height: '36px',
-  },
-  searchInput: {
-    flex: 1,
-    padding: '0 8px',
-    fontSize: '14px',
-    color: 'var(--text-primary)',
-  },
-  chatList: {
-    flex: 1,
-    overflowY: 'auto',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  emptyContainer: {
-    padding: '48px 24px',
-    textAlign: 'center',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  emptyTitle: {
-    fontSize: '16px',
-    fontWeight: 600,
-    color: 'var(--text-secondary)',
-  },
-  emptySubtitle: {
-    fontSize: '13px',
-    color: 'var(--text-tertiary)',
-    lineHeight: '1.45',
-  },
-  chatItem: {
-    display: 'flex',
-    alignItems: 'center',
-    padding: '10px 16px',
-    cursor: 'pointer',
-    position: 'relative',
-    transition: 'background-color 0.15s ease',
-    borderBottom: '1px solid rgba(0, 0, 0, 0.03)',
-  },
-  indicatorSlot: {
-    width: '10px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: '4px',
-  },
-  unreadDot: {
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    backgroundColor: 'var(--accent-color)',
-  },
-  avatarCircle: {
-    width: '46px',
-    height: '46px',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    marginRight: '12px',
-    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.08)',
-  },
-  avatarInitials: {
-    color: '#ffffff',
-    fontSize: '15px',
-    fontWeight: 600,
-    textTransform: 'uppercase',
-  },
-  chatDetails: {
-    flex: 1,
-    minWidth: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px',
-  },
-  topRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  chatName: {
-    fontSize: '14.5px',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  },
-  timeWrap: {
-    display: 'flex',
-    alignItems: 'center',
-    flexShrink: 0,
-  },
-  chatTime: {
-    fontSize: '11.5px',
-    color: 'var(--text-tertiary)',
-  },
-  bottomRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  previewWrap: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-    overflow: 'hidden',
-  },
-  statusIcon: {
-    display: 'flex',
-    alignItems: 'center',
-    flexShrink: 0,
-  },
-  previewText: {
-    fontSize: '13px',
-    color: 'var(--text-tertiary)',
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  },
-  unreadBadge: {
-    backgroundColor: 'var(--accent-color)',
-    color: '#ffffff',
-    fontSize: '11px',
-    fontWeight: 600,
-    borderRadius: 'var(--radius-full)',
-    minWidth: '18px',
-    height: '18px',
-    padding: '0 5px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  footer: {
-    height: '46px',
-    padding: '0 16px',
-    borderTop: '1px solid var(--border-subtle)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'var(--bg-sidebar)',
-  },
-  queueStatus: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  queueText: {
-    fontSize: '11.5px',
-    color: 'var(--text-secondary)',
-    fontWeight: 500,
-  },
-  logoutBtn: {
-    padding: '6px',
-    borderRadius: 'var(--radius-sm)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 };

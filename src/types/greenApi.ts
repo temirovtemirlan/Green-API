@@ -12,12 +12,16 @@ export type MessageDirection = 'incoming' | 'outgoing';
 
 export interface ChatMessage {
   id: string;
+  clientId?: string;
   chatId: string;
   text: string;
   timestamp: number;
   direction: MessageDirection;
   senderName?: string;
-  status: 'sending' | 'sent' | 'delivered' | 'error';
+  status: 'sending' | 'sent' | 'delivered' | 'read' | 'error';
+  type?: 'text' | 'audio' | 'image' | 'document';
+  downloadUrl?: string;
+  isUnread?: boolean;
 }
 
 export interface ChatSummary {
@@ -26,6 +30,8 @@ export interface ChatSummary {
   lastMessage?: ChatMessage;
   unreadCount: number;
   updatedAt: number;
+  lastSeen?: string | null;
+  avatarUrl?: string | null;
 }
 
 export interface SendMessagePayload {
@@ -45,6 +51,7 @@ export interface ReceiveNotificationResponse {
 
 export interface NotificationBody {
   typeWebhook: string;
+  chatId?: string;
   instanceData?: {
     idInstance: number;
     wid: string;
@@ -55,6 +62,7 @@ export interface NotificationBody {
   senderData?: {
     chatId: string;
     sender: string;
+    chatName?: string;
     senderName?: string;
     senderContactName?: string;
   };
@@ -68,7 +76,15 @@ export interface NotificationBody {
       description?: string;
       title?: string;
     };
+    fileMessageData?: {
+      downloadUrl?: string;
+      caption?: string;
+      fileName?: string;
+      mimeType?: string;
+    };
+    [key: string]: unknown;
   };
+  [key: string]: unknown;
 }
 
 export interface DeleteNotificationResponse {
@@ -81,5 +97,26 @@ export interface GreenApiRawChat {
   type: 'user' | 'group';
   unreadCount?: number;
   archive?: boolean;
+}
+
+export interface GreenApiRawHistoryMessage {
+  type: 'incoming' | 'outgoing';
+  idMessage: string;
+  timestamp: number;
+  typeMessage: string;
+  chatId: string;
+  textMessage?: string;
+  extendedTextMessage?: {
+    text: string;
+    description?: string;
+    title?: string;
+  };
+  senderId?: string;
+  senderName?: string;
+  senderContactName?: string;
+  caption?: string;
+  fileName?: string;
+  statusMessage?: string;
+  [key: string]: unknown;
 }
 
