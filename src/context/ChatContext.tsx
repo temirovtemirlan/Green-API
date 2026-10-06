@@ -301,6 +301,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (chatId) {
           const isIncoming = type === 'incomingMessageReceived';
           const isAudio = msgData?.typeMessage === 'audioMessage';
+          const isActiveChat = activeChatIdRef.current === chatId;
           const incomingMessage: ChatMessage = {
             id: idMessage,
             chatId,
@@ -311,13 +312,16 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             status: 'delivered',
             type: isAudio ? 'audio' : 'text',
             downloadUrl: (msgData?.fileMessageData?.downloadUrl as string) || undefined,
-            isUnread: isIncoming,
+            isUnread: isIncoming && !isActiveChat,
           };
           appendMessage(chatId, incomingMessage, senderName);
+          if (isIncoming && isActiveChat && client) {
+            client.readChat(chatId).catch(() => {});
+          }
         }
       }
     },
-    [appendMessage]
+    [appendMessage, client]
   );
 
   const handleNotificationRef = useRef(handleIncomingNotification);

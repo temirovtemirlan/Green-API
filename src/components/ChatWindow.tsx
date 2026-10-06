@@ -170,7 +170,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
 
   const lastObservedChatIdRef = useRef<string | null>(null);
 
-  // When switching to a chat with unread messages, capture unread message IDs before resetting
   useEffect(() => {
     if (!activeChat) return;
 
@@ -192,35 +191,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
         });
       }
 
-      // Mark as read in storage so F5 or next visit won't repeat it
       markChatAsRead(activeChat.chatId);
-    } else {
-      // While staying in the active chat: capture newly arriving incoming unread messages
-      const unreadMsgs = activeMessages.filter((m) => m.direction === 'incoming' && m.isUnread);
-      if (unreadMsgs.length > 0) {
-        setSessionUnreadInfo((prev) => {
-          if (prev.chatId === activeChat.chatId && prev.firstUnreadId) {
-            const nextSet = new Set(prev.unreadIds);
-            let hasNew = false;
-            unreadMsgs.forEach((m) => {
-              const k = m.clientId || m.id;
-              if (!nextSet.has(k)) {
-                nextSet.add(k);
-                hasNew = true;
-              }
-            });
-            return hasNew ? { ...prev, unreadIds: nextSet } : prev;
-          } else {
-            return {
-              chatId: activeChat.chatId,
-              firstUnreadId: unreadMsgs[0].clientId || unreadMsgs[0].id,
-              unreadIds: new Set(unreadMsgs.map((m) => m.clientId || m.id)),
-            };
-          }
-        });
-      }
     }
-  }, [activeChat?.chatId, activeChat?.unreadCount, activeMessages, markChatAsRead]);
+  }, [activeChat?.chatId, activeMessages, markChatAsRead]);
 
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
