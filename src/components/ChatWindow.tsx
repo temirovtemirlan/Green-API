@@ -395,8 +395,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
         </div>
       )}
 
-      {/* Messages Canvas */}
-      <div className="flex-1 overflow-y-auto px-8 pb-4 pt-2 flex flex-col gap-[2px] bg-white dark:bg-[#1c1c1e]">
+      {/* Messages Canvas with 100-150px side padding */}
+      <div className="flex-1 overflow-y-auto px-4 sm:px-12 md:px-[100px] lg:px-[130px] xl:px-[140px] pb-4 pt-2 flex flex-col gap-[2px] bg-white dark:bg-[#1c1c1e]">
         {activeMessages.length === 0 ? (
           <div className="h-full flex items-center justify-center p-8 text-center">
             <p className="text-[13.5px] text-[#8e8e93]">
@@ -441,8 +441,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
               return (
                 <React.Fragment key={messageKey}>
                   {isNewDay && (
-                    <div className="flex justify-center mt-3 mb-2.5">
-                      <span className="text-[12.5px] text-[#8e8e93] font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] px-3.5 py-1 rounded-full select-none">
+                    <div className="flex justify-center my-3">
+                      <span className="text-[12px] text-[#8e8e93] font-normal select-none">
                         {(() => {
                           const date = new Date(msg.timestamp);
                           const now = new Date();
@@ -450,7 +450,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
                             date.getDate() === now.getDate() &&
                             date.getMonth() === now.getMonth() &&
                             date.getFullYear() === now.getFullYear();
-                          if (isToday) return 'Сегодня';
+                          if (isToday) {
+                            const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                            return `Сегодня в ${timeStr}`;
+                          }
 
                           const yesterday = new Date(now);
                           yesterday.setDate(now.getDate() - 1);
@@ -469,8 +472,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
                     </div>
                   )}
                   {isFirstUnread && (
-                    <div className="w-full bg-[#f2f2f7] dark:bg-[#F4F4F4] py-1.5 text-center my-3 rounded-[4px] select-none">
-                      <span className="text-[12px] text-[#8e8e93] font-medium tracking-wide">
+                    <div className="w-full bg-[#f2f2f7] dark:bg-[#2c2c2e] py-1 text-center my-3 rounded-[3px] select-none">
+                      <span className="text-[11.5px] text-[#8e8e93] font-normal">
                         Непрочитанные сообщения
                       </span>
                     </div>
@@ -551,21 +554,21 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Bottom Input Dock matching screenshot */}
-      <footer className="px-6 py-3 bg-white dark:bg-[#1c1c1e] flex items-center gap-3 border-t border-[#ebebed] dark:border-[#2c2c2e]">
+      {/* Bottom Input Dock matching photo 1 (100-150px padding, no top line) */}
+      <footer className="px-4 sm:px-12 md:px-[100px] lg:px-[130px] xl:px-[140px] pt-1 pb-5 bg-white dark:bg-[#1c1c1e] flex items-center gap-3 select-none">
         {/* Plus attachment icon on left - disabled & non-clickable */}
         <button
           type="button"
           disabled
           aria-disabled="true"
-          className="w-9 h-9 rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] flex items-center justify-center flex-shrink-0 cursor-default pointer-events-none select-none opacity-40"
+          className="w-9 h-9 rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] flex items-center justify-center flex-shrink-0 cursor-default pointer-events-none select-none opacity-60"
           tabIndex={-1}
         >
           <AddCircleLinearIcon size={20} color="#8e8e93" />
         </button>
 
         {/* Input Pill */}
-        <form onSubmit={handleSend} className="flex-1 flex items-center bg-white dark:bg-[#2c2c2e] border border-[#e5e5ea] dark:border-[#3a3a3c] rounded-3xl py-1 px-4 gap-2">
+        <form onSubmit={handleSend} className="flex-1 flex items-center bg-white dark:bg-[#2c2c2e] border border-[#e5e5ea] dark:border-[#3a3a3c] rounded-full py-1.5 px-4 gap-2">
           <textarea
             ref={textareaRef}
             rows={1}
@@ -573,7 +576,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
             onChange={handleTextareaInput}
             onKeyDown={handleKeyDown}
             placeholder="Сообщение"
-            className="flex-1 max-h-[100px] resize-none text-[15.5px] leading-normal text-black dark:text-white bg-transparent outline-none py-1.5 placeholder:text-[#8e8e93]"
+            className="flex-1 max-h-[100px] resize-none text-[15.5px] leading-normal text-black dark:text-white bg-transparent outline-none py-1 px-1 placeholder:text-[#8e8e93]"
           />
 
           {inputText.trim() ? (
