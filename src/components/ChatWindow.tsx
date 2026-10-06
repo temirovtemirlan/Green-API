@@ -345,13 +345,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
     <main className="flex-1 w-full h-full flex flex-col bg-white dark:bg-[#1c1c1e] relative overflow-hidden">
       {/* Header matching screenshot */}
       <header className="h-[60px] px-5 flex items-center justify-between border-b border-[#ebebed] dark:border-[#2c2c2e] bg-white dark:bg-[#1c1c1e] z-10">
-        <div className="flex items-center w-10">
+        <div className="flex items-center w-[38px]">
           <button
             onClick={onBack || closeChat}
-            className="w-8 h-8 rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
+            className="w-[34px] h-[34px] min-w-[34px] min-h-[34px] rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all cursor-pointer"
             title="Назад к списку чатов (Esc)"
           >
-            <AltArrowLeftLinearIcon size={20} color="#3c3c43" />
+            <AltArrowLeftLinearIcon size={18} color="#3c3c43" />
           </button>
         </div>
 
