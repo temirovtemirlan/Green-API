@@ -197,7 +197,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
 
   const [inputText, setInputText] = useState('');
   const [isInputFocused, setIsInputFocused] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const shouldReduceMotion = useReducedMotion();
@@ -205,11 +205,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
   const lastChatIdRef = useRef<string | null>(null);
   const prevMessagesLengthRef = useRef<number>(0);
 
+  const scrollToBottom = (smooth = true) => {
+    if (messagesContainerRef.current) {
+      const container = messagesContainerRef.current;
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: smooth ? 'smooth' : 'auto',
+      });
+    }
+  };
+
   useEffect(() => {
     if (typeof window === 'undefined' || !window.visualViewport) return;
     const handleVisualResize = () => {
       if (isInputFocused) {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+        scrollToBottom(false);
+      }
+      if (typeof window !== 'undefined' && (window.scrollY !== 0 || window.scrollX !== 0)) {
+        window.scrollTo(0, 0);
       }
     };
     const vv = window.visualViewport;
@@ -234,12 +247,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
   } else {
     prevMessagesLengthRef.current = activeMessages.length;
   }
-
-  const scrollToBottom = (smooth = true) => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: smooth ? 'smooth' : 'auto',
-    });
-  };
 
   useEffect(() => {
     scrollToBottom(false);
@@ -395,6 +402,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
       )}
 
       <div
+        ref={messagesContainerRef}
         onPointerDown={() => {
           if (isInputFocused) {
             textareaRef.current?.blur();
@@ -555,7 +563,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
             })}
           </VoiceNoteGroup>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       <footer
@@ -587,9 +594,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
             onChange={handleTextareaInput}
             onFocus={() => {
               setIsInputFocused(true);
+              if (typeof window !== 'undefined') window.scrollTo(0, 0);
               setTimeout(() => {
-                messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-              }, 120);
+                scrollToBottom(true);
+                if (typeof window !== 'undefined') window.scrollTo(0, 0);
+              }, 60);
             }}
             onBlur={() => setIsInputFocused(false)}
             onKeyDown={handleKeyDown}
