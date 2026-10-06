@@ -382,7 +382,6 @@ export function VoiceNote({
       data-loading={loading || undefined}
       data-error={failed || undefined}
       className={cn(
-        // Pure flat message bubble styling: ZERO shadows, clean native look
         "relative select-none",
         variant === "outgoing"
           ? cn(
@@ -404,9 +403,7 @@ export function VoiceNote({
       {...props}
     >
       {layout === "stacked" ? (
-        // Stacked Telegram/WhatsApp layout: waveform spans full top width, details below
         <div className="flex items-center gap-2.5 w-full">
-          {/* Play/Pause control button without any shadows or double rings */}
           <motion.button
             data-slot="voice-note-control"
             type="button"

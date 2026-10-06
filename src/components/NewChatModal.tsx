@@ -59,7 +59,6 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose }) =
         transition={{ type: 'spring', damping: 26, stiffness: 340 }}
         className="w-full max-w-[380px] bg-white dark:bg-[#1c1c1e] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.18)] border border-black/[0.06] dark:border-white/[0.08] p-5 flex flex-col gap-4 select-none"
       >
-        {/* Header matching macOS / Telegram Desktop */}
         <div className="flex items-center justify-between pb-0.5">
           <h3 className="text-[18px] font-bold tracking-tight text-black dark:text-white">
             Новый чат

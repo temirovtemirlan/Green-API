@@ -33,7 +33,6 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isNewChatOpen, closeChat]);
 
-  // During initial mount or session reading, render clean loading splash
   if (!isMounted || isLoading) {
     return (
       <div className="flex items-center justify-center w-screen h-screen bg-[#f5f5f7]">
@@ -42,15 +41,12 @@ export default function Home() {
     );
   }
 
-  // If credentials are not present, render dedicated separate Auth Screen
   if (!credentials?.idInstance || !credentials?.apiTokenInstance) {
     return <AuthScreen />;
   }
 
-  // When logged in, render main two-pane messenger layout
   return (
     <div className="flex w-screen h-screen overflow-hidden bg-white dark:bg-[#1c1c1e]">
-      {/* Two-pane layout: Sidebar + ChatWindow */}
       <Sidebar
         onOpenNewChat={() => setIsNewChatOpen(true)}
       />

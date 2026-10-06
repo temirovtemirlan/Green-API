@@ -343,7 +343,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
 
   return (
     <main className="flex-1 w-full h-full flex flex-col bg-white dark:bg-[#1c1c1e] relative overflow-hidden">
-      {/* Header matching screenshot */}
       <header className="h-[60px] px-5 flex items-center justify-between border-b border-[#ebebed] dark:border-[#2c2c2e] bg-white dark:bg-[#1c1c1e] z-10">
         <div className="flex items-center w-[38px]">
           <button
@@ -378,7 +377,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
         </div>
       </header>
 
-      {/* Floating error banner if sending fails */}
       {lastSendError && (
         <div className="bg-[#ff3b30]/[0.08] border-b border-[#ff3b30]/20 px-5 py-2.5 flex items-center justify-between z-10">
           <div className="flex items-center gap-2.5 flex-1">
@@ -395,7 +393,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
         </div>
       )}
 
-      {/* Messages Canvas with responsive side padding (300px on widescreen) */}
       <div className="flex-1 overflow-y-auto px-4 sm:px-8 md:px-12 lg:px-20 xl:px-[180px] min-[1400px]:px-[300px] pb-4 pt-2 flex flex-col gap-[2px] bg-white dark:bg-[#1c1c1e]">
         {activeMessages.length === 0 ? (
           <div className="h-full flex items-center justify-center p-8 text-center">
@@ -541,7 +538,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
                           )}
                         </div>
 
-                        {/* Tail on the last message of group */}
                         {isLastInGroup && (isOutgoing ? <OutgoingTail /> : <IncomingTail />)}
                       </motion.div>
                     )}
@@ -554,9 +550,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Bottom Input Dock matching photo (responsive padding, 300px on widescreen, no top line) */}
       <footer className="px-4 sm:px-8 md:px-12 lg:px-20 xl:px-[180px] min-[1400px]:px-[300px] pt-1 pb-5 bg-white dark:bg-[#1c1c1e] flex items-center gap-3 select-none">
-        {/* Plus attachment icon on left - disabled & non-clickable (34x34) */}
         <button
           type="button"
           disabled

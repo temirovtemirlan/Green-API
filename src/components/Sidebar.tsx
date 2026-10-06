@@ -150,7 +150,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenNewChat }) => {
                     : 'hover:bg-black/[0.02] dark:hover:bg-white/[0.02]'
                 }`}
               >
-                {/* 11x11 Blue indicator to the left of profile picture (matching Photo 4) */}
+                {/* Unread indicator */}
                 <div className="flex items-center justify-center flex-shrink-0 mr-2.5 w-[11px]">
                   {hasUnread ? (
                     <div className="w-[11px] h-[11px] rounded-full bg-[#007aff] flex-shrink-0 animate-in fade-in duration-200" />
