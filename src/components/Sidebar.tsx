@@ -54,7 +54,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenNewChat }) => {
   };
 
   return (
-    <aside className="w-[340px] h-full bg-white dark:bg-[#1c1c1e] border-r border-[#ebebed] dark:border-[#2c2c2e] flex flex-col flex-shrink-0 z-10 select-none">
+    <aside
+      className={`${
+        activeChatId ? 'hidden md:flex' : 'flex'
+      } w-full md:w-[340px] md:min-w-[340px] h-full bg-white dark:bg-[#1c1c1e] border-r border-[#ebebed] dark:border-[#2c2c2e] flex-col flex-shrink-0 z-10 select-none`}
+    >
       {/* Top Bar with 'Чаты', New Chat button and Exit Icon */}
       <div className="h-16 px-5 flex items-center justify-between">
         <h1 className="text-[22px] font-bold tracking-tight text-black dark:text-white">Чаты</h1>

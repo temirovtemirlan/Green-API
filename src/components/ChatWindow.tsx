@@ -9,7 +9,7 @@ import { VoiceNote, VoiceNoteGroup } from '@/components/VoiceNote';
 import { motion, useReducedMotion } from 'motion/react';
 import {
   AltArrowLeftLinearIcon,
-  AddCircleLinearIcon,
+  AddLinearIcon,
   ArrowUpLinearIcon,
   CheckLinearIcon,
   CheckReadLinearIcon,
@@ -296,7 +296,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
 
   if (!activeChat) {
     return (
-      <main className="flex-1 flex items-center justify-center bg-white dark:bg-[#1c1c1e] p-6 select-none">
+      <main className="hidden md:flex flex-1 items-center justify-center bg-white dark:bg-[#1c1c1e] p-6 select-none">
         <p className="text-base text-[#000000] dark:text-white font-normal text-center">
           Выберите, с кем хотите общаться
         </p>
@@ -342,7 +342,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
   const statusSubtitle = formatLastSeen(activeChat.lastSeen);
 
   return (
-    <main className="flex-1 h-full flex flex-col bg-white dark:bg-[#1c1c1e] relative overflow-hidden">
+    <main className="flex-1 w-full h-full flex flex-col bg-white dark:bg-[#1c1c1e] relative overflow-hidden">
       {/* Header matching screenshot */}
       <header className="h-[60px] px-5 flex items-center justify-between border-b border-[#ebebed] dark:border-[#2c2c2e] bg-white dark:bg-[#1c1c1e] z-10">
         <div className="flex items-center w-10">
@@ -395,8 +395,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
         </div>
       )}
 
-      {/* Messages Canvas with 100-150px side padding */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-12 md:px-[100px] lg:px-[130px] xl:px-[140px] pb-4 pt-2 flex flex-col gap-[2px] bg-white dark:bg-[#1c1c1e]">
+      {/* Messages Canvas with responsive side padding (300px on widescreen) */}
+      <div className="flex-1 overflow-y-auto px-4 sm:px-8 md:px-12 lg:px-20 xl:px-[180px] min-[1400px]:px-[300px] pb-4 pt-2 flex flex-col gap-[2px] bg-white dark:bg-[#1c1c1e]">
         {activeMessages.length === 0 ? (
           <div className="h-full flex items-center justify-center p-8 text-center">
             <p className="text-[13.5px] text-[#8e8e93]">
@@ -554,17 +554,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Bottom Input Dock matching photo 1 (100-150px padding, no top line) */}
-      <footer className="px-4 sm:px-12 md:px-[100px] lg:px-[130px] xl:px-[140px] pt-1 pb-5 bg-white dark:bg-[#1c1c1e] flex items-center gap-3 select-none">
-        {/* Plus attachment icon on left - disabled & non-clickable */}
+      {/* Bottom Input Dock matching photo (responsive padding, 300px on widescreen, no top line) */}
+      <footer className="px-4 sm:px-8 md:px-12 lg:px-20 xl:px-[180px] min-[1400px]:px-[300px] pt-1 pb-5 bg-white dark:bg-[#1c1c1e] flex items-center gap-3 select-none">
+        {/* Plus attachment icon on left - disabled & non-clickable (34x34) */}
         <button
           type="button"
           disabled
           aria-disabled="true"
-          className="w-9 h-9 rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] flex items-center justify-center flex-shrink-0 cursor-default pointer-events-none select-none opacity-60"
+          className="w-[34px] h-[34px] min-w-[34px] min-h-[34px] rounded-full bg-[#f0f0f2] dark:bg-[#2c2c2e] flex items-center justify-center flex-shrink-0 cursor-default pointer-events-none select-none text-[#8e8e93]"
           tabIndex={-1}
         >
-          <AddCircleLinearIcon size={20} color="#8e8e93" />
+          <AddLinearIcon size={18} color="#8e8e93" />
         </button>
 
         {/* Input Pill */}
