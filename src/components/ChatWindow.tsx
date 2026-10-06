@@ -396,9 +396,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ onOpenNewChat, onBack })
       )}
 
       {/* Messages Canvas */}
-      <div className="flex-1 overflow-y-auto px-8 py-4 flex flex-col gap-[2px] bg-white dark:bg-[#1c1c1e]">
+      <div className="flex-1 overflow-y-auto px-8 pb-4 pt-2 flex flex-col gap-[2px] bg-white dark:bg-[#1c1c1e]">
         {/* Date pill divider */}
-        <div className="flex justify-center my-2.5 mb-4">
+        <div className="flex justify-center mt-2 mb-4">
           <span className="text-[11.5px] text-[#8e8e93] font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] px-3 py-1 rounded-full">
             Сегодня
           </span>

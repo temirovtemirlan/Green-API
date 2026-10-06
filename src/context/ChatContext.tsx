@@ -27,7 +27,7 @@ interface ChatContextType {
   pollingError: string | null;
   lastSendError: string | null;
   clearSendError: () => void;
-  syncChats: (forceFresh?: boolean) => Promise<void>;
+  syncChats: () => Promise<void>;
   clearAllChats: () => void;
   selectChat: (chatId: string) => void;
   closeChat: () => void;
@@ -60,16 +60,22 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isMountedRef = useRef<boolean>(true);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const [dataInstanceId, setDataInstanceId] = useState<string | null>(null);
+  const isLoadedFromStorageRef = useRef<boolean>(false);
+  const currentLoadedInstanceRef = useRef<string | null>(null);
 
   // Load chats, messages & activeChatId from localStorage when credentials change
   useEffect(() => {
     const nextId = credentials?.idInstance || null;
     if (!nextId) {
+      isLoadedFromStorageRef.current = false;
+      currentLoadedInstanceRef.current = null;
       setActiveChatId(null);
-      setDataInstanceId(null);
       setChats([]);
       setMessages({});
+      return;
+    }
+
+    if (currentLoadedInstanceRef.current === nextId) {
       return;
     }
 
@@ -92,31 +98,26 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (c.chatId === savedActiveChat) {
           return { ...c, unreadCount: 0 };
         }
-        const msgs = cleanedMessages[c.chatId] || [];
-        if (msgs.length === 0 && c.unreadCount > 0) {
-          return { ...c, unreadCount: 0 };
-        }
         return c;
       });
 
+      setChats(cleanedChats);
       if (savedActiveChat) {
-        setChats(cleanedChats);
         setActiveChatId(savedActiveChat);
-      } else {
-        setChats(cleanedChats);
-        setActiveChatId(null);
       }
     } catch {
       setChats([]);
       setMessages({});
       setActiveChatId(null);
     }
-    setDataInstanceId(nextId);
+
+    isLoadedFromStorageRef.current = true;
+    currentLoadedInstanceRef.current = nextId;
   }, [credentials?.idInstance]);
 
-  // Persist activeChatId to localStorage whenever it changes
+  // Persist activeChatId to localStorage whenever it changes (only after storage is loaded)
   useEffect(() => {
-    if (!credentials?.idInstance || dataInstanceId !== credentials.idInstance) return;
+    if (!isLoadedFromStorageRef.current || !credentials?.idInstance) return;
     try {
       if (activeChatId) {
         localStorage.setItem(`${ACTIVE_CHAT_STORAGE_KEY}_${credentials.idInstance}`, activeChatId);
@@ -126,26 +127,27 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {
       // Storage error
     }
-  }, [activeChatId, credentials?.idInstance, dataInstanceId]);
+  }, [activeChatId, credentials?.idInstance]);
 
-  // Persist chats & messages to localStorage only when in-memory state matches active instance
+  // Persist chats to localStorage whenever they change (only after storage is loaded)
   useEffect(() => {
-    if (!credentials?.idInstance || dataInstanceId !== credentials.idInstance) return;
+    if (!isLoadedFromStorageRef.current || !credentials?.idInstance) return;
     try {
       localStorage.setItem(`${CHATS_STORAGE_KEY}_${credentials.idInstance}`, JSON.stringify(chats));
     } catch {
-      // Quota or storage error
+      // Storage error
     }
-  }, [chats, credentials?.idInstance, dataInstanceId]);
+  }, [chats, credentials?.idInstance]);
 
+  // Persist messages to localStorage whenever they change (only after storage is loaded)
   useEffect(() => {
-    if (!credentials?.idInstance || dataInstanceId !== credentials.idInstance) return;
+    if (!isLoadedFromStorageRef.current || !credentials?.idInstance) return;
     try {
       localStorage.setItem(`${MESSAGES_STORAGE_KEY}_${credentials.idInstance}`, JSON.stringify(messages));
     } catch {
       // Storage quota error
     }
-  }, [messages, credentials?.idInstance, dataInstanceId]);
+  }, [messages, credentials?.idInstance]);
 
   const activeChatIdRef = useRef<string | null>(activeChatId);
   useEffect(() => {
@@ -390,7 +392,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Fetch available chats from GREEN-API instance
   const syncChats = useCallback(
-    async (forceFresh: boolean = false) => {
+    async () => {
       if (!client) return;
       setIsSyncingChats(true);
       try {
@@ -399,10 +401,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setChats((prev) => {
             const map = new Map<string, ChatSummary>();
 
-            // If not forceFresh, preserve existing local chats and messages
-            if (!forceFresh) {
-              prev.forEach((c) => map.set(c.chatId, c));
-            }
+            // Always preserve existing local chats and lastMessage
+            prev.forEach((c) => map.set(c.chatId, c));
 
             // Populate remote chats from GREEN-API
             remoteChats.forEach((rc) => {
@@ -433,18 +433,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
               }
             });
 
-            const updated = Array.from(map.values());
-            if (credentials?.idInstance) {
-              try {
-                localStorage.setItem(
-                  `${CHATS_STORAGE_KEY}_${credentials.idInstance}`,
-                  JSON.stringify(updated)
-                );
-              } catch {
-                // Storage quota error
-              }
-            }
-            return updated;
+            return Array.from(map.values());
           });
         }
       } catch (err: unknown) {
@@ -453,13 +442,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsSyncingChats(false);
       }
     },
-    [client, credentials?.idInstance]
+    [client]
   );
 
   // Automatically pull chats when connected
   useEffect(() => {
     if (client) {
-      syncChats(true);
+      syncChats();
     }
   }, [client, syncChats]);
 
@@ -841,6 +830,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const clearAllChats = useCallback(() => {
+    isLoadedFromStorageRef.current = false;
+    currentLoadedInstanceRef.current = null;
     setChats([]);
     setMessages({});
     setActiveChatId(null);
@@ -848,9 +839,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         localStorage.removeItem(`${CHATS_STORAGE_KEY}_${credentials.idInstance}`);
         localStorage.removeItem(`${MESSAGES_STORAGE_KEY}_${credentials.idInstance}`);
-        // Clean legacy generic keys if any exist
+        localStorage.removeItem(`${ACTIVE_CHAT_STORAGE_KEY}_${credentials.idInstance}`);
         localStorage.removeItem(CHATS_STORAGE_KEY);
         localStorage.removeItem(MESSAGES_STORAGE_KEY);
+        localStorage.removeItem(ACTIVE_CHAT_STORAGE_KEY);
       } catch {
         // Storage error
       }
